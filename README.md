@@ -1,5 +1,10 @@
 [//]: # (SPDX-License-Identifier: CC-BY-4.0)
 
+# First Step - By EduHenrique
+Follow the [Install the Fabric Samples, Binaries, and Docker Images - v2.1.0](https://hyperledger-fabric.readthedocs.io/en/release-2.1/install.html). In this Fork, an election process is added using the Docker images from Fabric 2.1.0 version.
+
+After running the **curl -sSL https://bit.ly/2ysbOFE | bash -s** part from the above link, the bin and **config** folders will be created, then you should copy those folders to this fork one. 
+
 # Hyperledger Fabric Samples
 
 You can use Fabric samples to get started working with Hyperledger Fabric, explore important Fabric features, and learn how to build applications that can interact with blockchain networks using the Fabric SDKs. To learn more about Hyperledger Fabric, visit the [Fabric documentation](https://hyperledger-fabric.readthedocs.io/en/master).
