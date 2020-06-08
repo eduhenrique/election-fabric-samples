@@ -6,6 +6,8 @@ import { Context, Contract } from 'fabric-contract-api';
 import { Eleicao } from './models/eleicao';
 import { Cargo } from './models/cargo';
 import { Participante } from './models/participante';
+import { Shim } from 'fabric-shim';
+
 
 export class ProcessoEleitoral extends Contract {
 
@@ -25,7 +27,7 @@ export class ProcessoEleitoral extends Contract {
             {
                 nome: "Diretor Geral",
                 eleicaoNum: "ELEICAO0",
-                eleicao: eleicao,
+                // eleicao: eleicao,
             },
             {
                 nome: "Coordenador",
@@ -52,6 +54,29 @@ export class ProcessoEleitoral extends Contract {
         return cargoAsBytes.toString();
     }
 
+    //Needed to be a custom query through Rich couchDB query?
+    // public async queryAllCargosByEleicao(ctx: Context, eleicaoNumber: string): Promise<string> {
+    //     const startKey = 'CARGO0';
+    //     const endKey = 'CARGO999';
+    //     const allResults = [];
+    //     for await (const {key, value} of ctx.stub.getStateByRange(startKey, endKey)) {
+    //         const strValue = Buffer.from(value).toString('utf8');
+    //         let record;
+    //         try {
+    //             record = JSON.parse(strValue);
+    //         } catch (err) {
+    //             console.log(err);
+    //             record = strValue;
+    //         }
+    //         allResults.push({ Key: key, Record: record });
+    //     }
+
+    //     console.info(allResults);
+    //     return JSON.stringify(allResults);
+    // }
+
+    // peer chaincode query -C mychannel -n processo_eleitoral -c '{"Args":["queryCargosByEleicao","ELEICAO0"]}'
+
     public async queryEleicao(ctx: Context, eleicaoNumber: string): Promise<string> {
         const eleicaoAsBytes = await ctx.stub.getState(eleicaoNumber);
         if (!eleicaoAsBytes || eleicaoAsBytes.length === 0) {
@@ -61,9 +86,18 @@ export class ProcessoEleitoral extends Contract {
         return eleicaoAsBytes.toString();
     }
 
+    public async queryParticipante(ctx: Context, participanteNumber: string): Promise<string> {
+        const participanteAsBytes = await ctx.stub.getState(participanteNumber);
+        if (!participanteAsBytes || participanteAsBytes.length === 0) {
+            throw new Error(`${participanteNumber} does not exist`);
+        }
+        console.log(participanteAsBytes.toString());
+        return participanteAsBytes.toString();
+    }
+
     public async createCargo(ctx: Context, cargoNumber: string, nome: string, eleicaoNumber: string) {
         console.info('============= START : Create Cargo ===========');
-        
+        //verificar se é update ou create - fazer um getAll por Eleicao
         const eleicaoResult = await this.queryEleicao(ctx, eleicaoNumber);
         const eleicao: Eleicao = JSON.parse(eleicaoResult);
         console.log(eleicaoResult);
