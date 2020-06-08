@@ -6,7 +6,6 @@ import { Gateway, Wallets } from 'fabric-network';
 import * as path from 'path';
 import * as fs from 'fs';
 
-
 async function main() {
     try {
         // load the network configuration
@@ -38,9 +37,11 @@ async function main() {
 
         // Evaluate the specified transaction.
         const result = await contract.evaluateTransaction('queryCargo', 'CARGO0');
+        console.log(`Transaction has been evaluated, result is: ${result.toString()}\n`);
         const result1 = await contract.evaluateTransaction('queryCargo', 'CARGO1');
-        console.log(`Transaction has been evaluated, result is: ${result.toString()}`);
-        console.log(`${result1.toString()}`);
+        console.log(`${result1.toString()}\n`);
+        const result2 = await contract.evaluateTransaction('queryCargo', 'CARGO2');
+        console.log(`${result2.toString()}\n`);
 
 
     } catch (error) {

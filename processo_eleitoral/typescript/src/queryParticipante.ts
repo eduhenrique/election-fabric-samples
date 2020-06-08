@@ -36,9 +36,8 @@ async function main() {
         const contract = network.getContract('processo_eleitoral');
 
         // Evaluate the specified transaction.
-        const result = await contract.evaluateTransaction('queryEleicao', 'ELEICAO0');        
-        console.log(`Transaction has been evaluated, result is: ${result.toString()}`);        
-
+        const result = await contract.evaluateTransaction('queryParticipante', 'PARTICIPANTE0');
+        console.log(`Transaction has been evaluated, result is: ${result.toString()}\n`);
 
     } catch (error) {
         console.error(`Failed to evaluate transaction: ${error}`);
