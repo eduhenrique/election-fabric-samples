@@ -7,6 +7,7 @@ import { Eleicao } from './models/eleicao';
 import { Cargo } from './models/cargo';
 import { Participante } from './models/participante';
 import { Shim } from 'fabric-shim';
+import { Candidato } from './models/candidato';
 
 
 export class ProcessoEleitoral extends Contract {
@@ -51,7 +52,9 @@ export class ProcessoEleitoral extends Contract {
             throw new Error(`${cargoNumber} does not exist`);
         }
         console.log(cargoAsBytes.toString());
-        return cargoAsBytes.toString();
+                
+        return "\nClientIdentity.getIDBytes " + ctx.clientIdentity.getIDBytes()  + " " +
+        "\n" + cargoAsBytes.toString();
     }
 
     //Needed to be a custom query through Rich couchDB query?
@@ -125,4 +128,32 @@ export class ProcessoEleitoral extends Contract {
         await ctx.stub.putState(participanteNumber, Buffer.from(JSON.stringify(participante)));
         console.info('============= END : Create Participante ===========');
     }
+
+    public async submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string) {
+        //verificar se periodo de candidatura.
+        //verificar se já se candidatou para algum cargo nessa eleicao.
+        //O link para confirmar candidatura chegará no email registrado?
+        //O código do chainchode permanece fechado?
+
+        const participanteResult = await this.queryEleicao(ctx, participanteNumber);
+        const participante : Participante = JSON.parse(participanteResult);
+
+        const candidato : Candidato = {
+            docType: 'candidato',            
+            nome: participante.nome,
+            participanteNum: participanteNumber,            
+            cargoNum: cargoNumber,
+        };
+
+        const candidatoNum : string = 'CANDIDATO' + participanteNumber.replace('PARTICIPANTE','');
+        await ctx.stub.putState(candidatoNum, Buffer.from(JSON.stringify(candidato)));
+        return candidatoNum + " criado."  ;
+    }
+
+    public async submitVoto(ctx: Context, participanteNumber: string, nome: string, cpf: string, email: string) {
+        //verificar se periodo de votacao
+        //verificar se ja votou nessa eleicao/cargo 
+            //(o voto de uma eleicao só é registrado se todos os cargos forem selecionados/votados?)
+    }
+
 }
