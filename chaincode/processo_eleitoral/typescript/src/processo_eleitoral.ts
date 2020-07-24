@@ -8,6 +8,8 @@ import { Cargo } from './models/cargo';
 import { Participante } from './models/participante';
 import { Shim } from 'fabric-shim';
 import { Candidato } from './models/candidato';
+import { Voto } from './models/voto';
+import * as sha256 from "fast-sha256";
 
 
 export class ProcessoEleitoral extends Contract {
@@ -98,6 +100,15 @@ export class ProcessoEleitoral extends Contract {
         return participanteAsBytes.toString();
     }
 
+    public async queryCandidato(ctx: Context, candidatoNumber: string): Promise<string> {
+        const candidatoAsBytes = await ctx.stub.getState(candidatoNumber);
+        if (!candidatoAsBytes || candidatoAsBytes.length === 0) {
+            throw new Error(`${candidatoNumber} does not exist`);
+        }
+        console.log(candidatoAsBytes.toString());
+        return candidatoAsBytes.toString();
+    }
+
     public async createCargo(ctx: Context, cargoNumber: string, nome: string, eleicaoNumber: string) {
         console.info('============= START : Create Cargo ===========');
         //verificar se é update ou create - fazer um getAll por Eleicao
@@ -150,10 +161,27 @@ export class ProcessoEleitoral extends Contract {
         return candidatoNum + " criado."  ;
     }
 
-    public async submitVoto(ctx: Context, participanteNumber: string, nome: string, cpf: string, email: string) {
+    public async requestVoto(ctx: Context, participanteNumber: string, cpf: string, email: string) {
+        //hash for URL-safe base64-encoded 
         //verificar se periodo de votacao
         //verificar se ja votou nessa eleicao/cargo 
-            //(o voto de uma eleicao só é registrado se todos os cargos forem selecionados/votados?)
+    }
+    
+    public async submitVoto(ctx: Context, participanteNumber: string, cpf: string, candidatoNumber:string) {
+        //(o voto de uma eleicao só é registrado se todos os cargos forem selecionados/votados?)
+        
+        const idUint8Array = ctx.clientIdentity.getIDBytes();
+        let hash = "";
+        const hashBytes = sha256.hkdf(idUint8Array); //Salt seria a key da eleicao em questão?
+        hash = hashBytes.toString();
+        const voto : Voto = {
+            docType: 'voto',
+            eleitorHash: hash,
+            candidatoNum: candidatoNumber
+        };
+        const votoNum : string = 'VOTO' + participanteNumber.replace('PARTICIPANTE','');
+        await ctx.stub.putState(votoNum, Buffer.from(JSON.stringify(voto)));
+        return votoNum + " criado. Identificador do usuário é: " + hash ;
     }
 
 }
