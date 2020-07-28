@@ -9,7 +9,10 @@ import { Participante } from './models/participante';
 import { Shim } from 'fabric-shim';
 import { Candidato } from './models/candidato';
 import { Voto } from './models/voto';
-import * as sha256 from "fast-sha256";
+// import * as sha256 from "fast-sha256";
+import sha256, { Hash, HMAC } from "fast-sha256";
+import { throws } from 'assert';
+import { exception } from 'console';
 
 
 export class ProcessoEleitoral extends Contract {
@@ -170,10 +173,25 @@ export class ProcessoEleitoral extends Contract {
     public async submitVoto(ctx: Context, participanteNumber: string, cpf: string, candidatoNumber:string) {
         //(o voto de uma eleicao só é registrado se todos os cargos forem selecionados/votados?)
         
-        const idUint8Array = ctx.clientIdentity.getIDBytes();
+        let idUint8Array = ctx.clientIdentity.getIDBytes();
         let hash = "";
-        const hashBytes = sha256.hkdf(idUint8Array); //Salt seria a key da eleicao em questão?
-        hash = hashBytes.toString();
+
+        //#region String To UInt8Array
+        let eleicaoKey = "ELEICAO1";
+        let buffer = new ArrayBuffer(eleicaoKey.length);
+        let salt = new Uint8Array(buffer);
+        for (let i = 0; i < eleicaoKey.length; i++) {
+            salt[i] = eleicaoKey.charCodeAt(i);
+        }
+        //#endregion
+        try{
+            //let aaa = new HMAC(salt).digest();
+            //let hashBytes = sha256.hkdf(idUint8Array, salt); //Salt seria a key da eleicao em questão?
+        }
+        catch(err){
+            throw new Error(err.message);
+        }
+        //hash = hashBytes.toString();
         const voto : Voto = {
             docType: 'voto',
             eleitorHash: hash,
