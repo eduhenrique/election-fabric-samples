@@ -9,8 +9,8 @@ import { Participante } from './models/participante';
 import { Shim } from 'fabric-shim';
 import { Candidato } from './models/candidato';
 import { Voto } from './models/voto';
-// import * as sha256 from "fast-sha256";
-import sha256, { Hash, HMAC } from "fast-sha256";
+// import * as fastSha256 from "fast-sha256";
+// import fastSha256, { Hash, HMAC } from "fast-sha256";
 import { throws } from 'assert';
 import { exception } from 'console';
 
@@ -172,12 +172,13 @@ export class ProcessoEleitoral extends Contract {
     
     public async submitVoto(ctx: Context, participanteNumber: string, cpf: string, candidatoNumber:string) {
         //(o voto de uma eleicao só é registrado se todos os cargos forem selecionados/votados?)
-        
+        var fastSha256 = require("fast-sha256");
         let idUint8Array = ctx.clientIdentity.getIDBytes();
         let hash = "";
+        let wayBack = ""; // teste
 
         //#region String To UInt8Array
-        let eleicaoKey = "ELEICAO1";
+        let eleicaoKey = "ELEICAO0";
         let buffer = new ArrayBuffer(eleicaoKey.length);
         let salt = new Uint8Array(buffer);
         for (let i = 0; i < eleicaoKey.length; i++) {
@@ -186,20 +187,21 @@ export class ProcessoEleitoral extends Contract {
         //#endregion
         try{
             //let aaa = new HMAC(salt).digest();
-            //let hashBytes = sha256.hkdf(idUint8Array, salt); //Salt seria a key da eleicao em questão?
+            let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da eleicao em questão?
+            wayBack = String.fromCharCode.apply(null, Array.from(hashBytes));
+            hash = hashBytes.toString();
         }
         catch(err){
             throw new Error(err.message);
         }
-        //hash = hashBytes.toString();
         const voto : Voto = {
             docType: 'voto',
             eleitorHash: hash,
             candidatoNum: candidatoNumber
         };
         const votoNum : string = 'VOTO' + participanteNumber.replace('PARTICIPANTE','');
-        await ctx.stub.putState(votoNum, Buffer.from(JSON.stringify(voto)));
-        return votoNum + " criado. Identificador do usuário é: " + hash ;
+        //await ctx.stub.putState(votoNum, Buffer.from(JSON.stringify(voto)));
+        return votoNum + " criado. Identificador do usuário é: " + hash + " hashBytes Wayback - " + wayBack;
     }
 
 }
