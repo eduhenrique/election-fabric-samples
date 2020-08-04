@@ -38,7 +38,9 @@ async function main() {
         //submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string)
         await contract.submitTransaction('submitCandidato', 'PARTICIPANTE0', 'CARGO0');
         console.log(`Transaction has been submitted`);
-        await contract.submitTransaction('submitCandidato', 'PARTICIPANTE1', 'CARGO0');
+        await contract.submitTransaction('submitCandidato', 'PARTICIPANTE1', 'CARGO1');
+        console.log(`Transaction has been submitted`);
+        await contract.submitTransaction('submitCandidato', 'PARTICIPANTE2', 'CARGO0');
         console.log(`Transaction has been submitted`);
         
         // Disconnect from the gateway.
