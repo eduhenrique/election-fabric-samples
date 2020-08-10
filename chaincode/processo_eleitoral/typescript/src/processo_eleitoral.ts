@@ -178,7 +178,7 @@ export class ProcessoEleitoral extends Contract {
         let wayBack = ""; // teste
 
         //#region String To UInt8Array
-        let eleicaoKey = "ELEICAO0";
+        let eleicaoKey = "ELEICAO1";
         let buffer = new ArrayBuffer(eleicaoKey.length);
         let salt = new Uint8Array(buffer);
         for (let i = 0; i < eleicaoKey.length; i++) {
@@ -188,8 +188,8 @@ export class ProcessoEleitoral extends Contract {
         try{
             //let aaa = new HMAC(salt).digest();
             let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da eleicao em questão?
-            wayBack = String.fromCharCode.apply(null, Array.from(hashBytes));
-            hash = hashBytes.toString();
+            // wayBack = String.fromCharCode.apply(null, Array.from(hashBytes));
+            hash = hashBytes.map(b => b.toString(16).padStart(2, '0')).join('');
         }
         catch(err){
             throw new Error(err.message);
@@ -201,7 +201,7 @@ export class ProcessoEleitoral extends Contract {
         };
         const votoNum : string = 'VOTO' + participanteNumber.replace('PARTICIPANTE','');
         //await ctx.stub.putState(votoNum, Buffer.from(JSON.stringify(voto)));
-        return votoNum + " criado. Identificador do usuário é: " + hash + " hashBytes Wayback - " + wayBack;
+        return votoNum + " criado. Identificador do usuário é: " + hash;
     }
 
 }
