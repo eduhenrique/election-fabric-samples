@@ -36,7 +36,7 @@ async function main() {
         const contract = network.getContract('processo_eleitoral');
 
         await contract.submitTransaction('createCargo', 'CARGO2', 'Tesouraria', 'ELEICAO0');
-        console.log(`Transaction has been submitted`);
+        console.log(`Cargo has been created`);
 
         // Disconnect from the gateway.
         await gateway.disconnect();
