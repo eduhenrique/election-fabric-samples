@@ -25,7 +25,7 @@ export class ProcessoEleitoral extends Contract {
             nome: "Diretoria 2020",
             inicio_candidatura: "2020-10-15T09:00",
             final_candidatura: "2020-10-19T12:00",
-            inicio_votacao: "2020-10-19T13:00",
+            inicio_votacao: "2020-10-19T12:01",
             final_votacao: "2020-10-20T17:00",
         };
 
@@ -175,10 +175,9 @@ export class ProcessoEleitoral extends Contract {
         var fastSha256 = require("fast-sha256");
         let idUint8Array = ctx.clientIdentity.getIDBytes();
         let hash = "";
-        let wayBack = ""; // teste
-
+        
         //#region String To UInt8Array
-        let eleicaoKey = "ELEICAO1";
+        let eleicaoKey = "ELEICAO"; // pegar dinamicamente query: candidato -> cargo -> eleicao
         let buffer = new ArrayBuffer(eleicaoKey.length);
         let salt = new Uint8Array(buffer);
         for (let i = 0; i < eleicaoKey.length; i++) {
@@ -187,8 +186,7 @@ export class ProcessoEleitoral extends Contract {
         //#endregion
         try{
             //let aaa = new HMAC(salt).digest();
-            let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da eleicao em questão?
-            // wayBack = String.fromCharCode.apply(null, Array.from(hashBytes));
+            let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da eleicao em questão?            
             hash = hashBytes.map(b => b.toString(16).padStart(2, '0')).join('');
         }
         catch(err){
@@ -200,7 +198,7 @@ export class ProcessoEleitoral extends Contract {
             candidatoNum: candidatoNumber
         };
         const votoNum : string = 'VOTO' + participanteNumber.replace('PARTICIPANTE','');
-        //await ctx.stub.putState(votoNum, Buffer.from(JSON.stringify(voto)));
+        await ctx.stub.putState(votoNum, Buffer.from(JSON.stringify(voto)));
         return votoNum + " criado. Identificador do usuário é: " + hash;
     }
 
