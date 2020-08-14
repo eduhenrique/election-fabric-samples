@@ -36,11 +36,11 @@ async function main() {
         const contract = network.getContract('processo_eleitoral');
 
         //submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string)
-        await contract.submitTransaction('submitCandidato', 'PARTICIPANTE0', 'CARGO0');
+        await contract.submitTransaction('submitCandidato', 'PARTICIPANTE0', 'CARGO0', 'Prometo Animes de qualdiade para todos.');
         console.log(`Transaction has been submitted`);
         await contract.submitTransaction('submitCandidato', 'PARTICIPANTE1', 'CARGO1');
         console.log(`Transaction has been submitted`);
-        await contract.submitTransaction('submitCandidato', 'PARTICIPANTE2', 'CARGO0');
+        await contract.submitTransaction('submitCandidato', 'PARTICIPANTE2', 'CARGO0', 'Será feito um programa de inclusão social para a organização.');
         console.log(`Transaction has been submitted`);
         
         // Disconnect from the gateway.

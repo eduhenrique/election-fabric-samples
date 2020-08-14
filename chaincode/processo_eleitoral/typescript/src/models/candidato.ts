@@ -4,6 +4,7 @@ import { Participante } from "./participante";
 export class Candidato {
     public docType?: string;
     public nome: string;
+    public proposta?: string;
     public participanteNum: string;
     public participante?: Participante;
     public cargoNum: string;

@@ -143,7 +143,7 @@ export class ProcessoEleitoral extends Contract {
         console.info('============= END : Create Participante ===========');
     }
 
-    public async submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string) {
+    public async submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string, proposta: string = '') {
         //verificar se periodo de candidatura.
         //verificar se já se candidatou para algum cargo nessa eleicao.
         //O link para confirmar candidatura chegará no email registrado?
@@ -155,6 +155,7 @@ export class ProcessoEleitoral extends Contract {
         const candidato : Candidato = {
             docType: 'candidato',            
             nome: participante.nome,
+            proposta: proposta,
             participanteNum: participanteNumber,            
             cargoNum: cargoNumber,
         };
