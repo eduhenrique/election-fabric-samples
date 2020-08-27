@@ -6,7 +6,8 @@ import { Context, Contract } from 'fabric-contract-api';
 import { Eleicao } from './models/eleicao';
 import { Cargo } from './models/cargo';
 import { Participante } from './models/participante';
-import { Shim } from 'fabric-shim';
+import { Shim, ChaincodeResponse } from 'fabric-shim';
+import * as ShimApi from 'fabric-shim-api';
 import { Candidato } from './models/candidato';
 import { Voto } from './models/voto';
 // import * as fastSha256 from "fast-sha256";
@@ -84,6 +85,59 @@ export class ProcessoEleitoral extends Contract {
     // }
 
     // peer chaincode query -C mychannel -n processo_eleitoral -c '{"Args":["queryCargosByEleicao","ELEICAO0"]}'
+
+    public async queryMarblesByOwner(ctx: Context, args: string[] ): Promise<ChaincodeResponse>{    
+        var owner:string = args[0].toLowerCase()
+    
+        var queryString = "{\"selector\":{\"docType\":\"marble\",\"owner\":\"" + owner +"\"}}";
+    
+        try {
+            var queryResults = this.getQueryResultForQueryString(ctx, queryString);
+        } catch (err) {
+            console.log(err);
+            return Shim.error(err.Error());
+        }
+        
+        return Shim.success((await queryResults))
+    }
+
+    private async getQueryResultForQueryString(ctx: Context, queryString: string): Promise<Uint8Array> {
+          
+        var resultsIterator = ctx.stub.getQueryResult(queryString);
+        var buffer = this.constructQueryResponseFromIterator(resultsIterator);
+    
+        return (await buffer).valueOf()
+    }
+
+    private async constructQueryResponseFromIterator(resultsIterator: Promise<ShimApi.Iterators.StateQueryIterator> & AsyncIterable<ShimApi.Iterators.KV> ) {
+        // buffer is a JSON array containing QueryResults
+        var buffer = Buffer.from(resultsIterator) //new ArrayBuffer(20480000);//bytes.Buffer        
+        buffer.write("[")
+    
+        var bArrayMemberAlreadyWritten = false
+        //for (var queryResponse in (await resultsIterator).next()) {
+        while ((await resultsIterator).next()){
+            var queryResponse = (await resultsIterator).next()
+
+            // Add a comma before array members, suppress it for the first array member
+            if (bArrayMemberAlreadyWritten == true) {
+                buffer.write(",")
+            }
+            buffer.write("{\"Key\":")
+            buffer.write("\"")
+            buffer.write((await queryResponse).value.key)
+            buffer.write("\"")
+    
+            buffer.write(", \"Record\":")
+            // Record is a JSON object, so we write as-is
+            buffer.write(String((await queryResponse).value.value))
+            buffer.write("}")
+            bArrayMemberAlreadyWritten = true
+        }
+        buffer.write("]")    
+        return buffer;
+    }
+
 
     public async queryEleicao(ctx: Context, eleicaoNumber: string): Promise<string> {
         const eleicaoAsBytes = await ctx.stub.getState(eleicaoNumber);
@@ -166,6 +220,7 @@ export class ProcessoEleitoral extends Contract {
     }
 
     public async requestVoto(ctx: Context, participanteNumber: string, cpf: string, email: string) {
+        // a verificação sobre o eleitor acontece agora ou no momento do acesso? (register user)
         //hash for URL-safe base64-encoded 
         //verificar se periodo de votacao
         //verificar se ja votou nessa eleicao/cargo 
