@@ -36,13 +36,10 @@ async function main() {
         const contract = network.getContract('processo_eleitoral');
 
         //submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string)
-        await contract.submitTransaction('submitCandidato', 'PARTICIPANTE0', 'CARGO0', 'Prometo Animes de qualdiade para todos.');
-        console.log(`Candidato no cargo0 has been submitted`);
-        await contract.submitTransaction('submitCandidato', 'PARTICIPANTE1', 'CARGO1', '');
-        console.log(`Candidato no cargo1 has been submitted`);
-        await contract.submitTransaction('submitCandidato', 'PARTICIPANTE2', 'CARGO0', 'Será feito um programa de inclusão social para a organização.');
-        console.log(`Candidato no cargo0 has been submitted`);
-        
+        console.log('MASUQ');
+        const result0 = await contract.submitTransaction('queryAllCargosByEleicao', 'ELEICAO0');
+        console.log(`Resultado RichQuery Cargos - ` +`${result0.toString()}\n`);
+
         // Disconnect from the gateway.
         await gateway.disconnect();
 

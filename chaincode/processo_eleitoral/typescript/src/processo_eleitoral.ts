@@ -84,58 +84,57 @@ export class ProcessoEleitoral extends Contract {
     //     return JSON.stringify(allResults);
     // }
 
-    // peer chaincode query -C mychannel -n processo_eleitoral -c '{"Args":["queryCargosByEleicao","ELEICAO0"]}'
-
-    public async queryMarblesByOwner(ctx: Context, args: string[] ): Promise<ChaincodeResponse>{    
-        var owner:string = args[0].toLowerCase()
+    public async queryAllCargosByEleicao(ctx: Context, args: string ): Promise<string>{
+        //Promise<ChaincodeResponse
+        // var eleicaoNum:string = args[0].toLowerCase()
     
-        var queryString = "{\"selector\":{\"docType\":\"marble\",\"owner\":\"" + owner +"\"}}";
+        var queryString = "{\"selector\":{\"docType\":\"cargo\",\"eleicaoNum\":\"" + args +"\"}}";
     
         try {
             var queryResults = this.getQueryResultForQueryString(ctx, queryString);
         } catch (err) {
             console.log(err);
-            return Shim.error(err.Error());
+            var resultErr =  Shim.error(err.Error());
+            return "Message Err - " + resultErr.message + "  Payload - " + resultErr.payload.toString()
         }
-        
-        return Shim.success((await queryResults))
+
+        console.info(queryResults);
+        return queryResults;
     }
 
-    private async getQueryResultForQueryString(ctx: Context, queryString: string): Promise<Uint8Array> {
-          
+    private async getQueryResultForQueryString(ctx: Context, queryString: string): Promise<string> {
+        //Promise<ChaincodeResponse>
         var resultsIterator = ctx.stub.getQueryResult(queryString);
-        var buffer = this.constructQueryResponseFromIterator(resultsIterator);
-    
-        return (await buffer).valueOf()
+        var buffer = this.assemblyJsonResponseFromIterator(resultsIterator);    
+        return await buffer
     }
 
-    private async constructQueryResponseFromIterator(resultsIterator: Promise<ShimApi.Iterators.StateQueryIterator> & AsyncIterable<ShimApi.Iterators.KV> ) {
-        // buffer is a JSON array containing QueryResults
-        var buffer = Buffer.from(resultsIterator) //new ArrayBuffer(20480000);//bytes.Buffer        
-        buffer.write("[")
-    
-        var bArrayMemberAlreadyWritten = false
-        //for (var queryResponse in (await resultsIterator).next()) {
-        while ((await resultsIterator).next()){
-            var queryResponse = (await resultsIterator).next()
+    private async assemblyJsonResponseFromIterator(resultsIterator: Promise<ShimApi.Iterators.StateQueryIterator> & AsyncIterable<ShimApi.Iterators.KV>) : Promise<string> {        
+        var resultJson : string = "[";
 
-            // Add a comma before array members, suppress it for the first array member
-            if (bArrayMemberAlreadyWritten == true) {
-                buffer.write(",")
+        var memberAlreadyWritten = false
+        var queryResponse = (await (await resultsIterator).next()).value
+        do{
+            if (queryResponse){
+                // Add a comma before array members, suppress it for the first array member
+                if (memberAlreadyWritten == true) {
+                    resultJson+= ",";
+                }
+                resultJson+= "{\"Key\":";
+                resultJson+= "\"";
+                resultJson+= queryResponse.key;
+                resultJson+= "\"";
+        
+                resultJson+= ", \"Record\":";
+                // Record is a JSON object, so we write as-is
+                resultJson+= String(queryResponse.value);
+                resultJson+= "}";
+                memberAlreadyWritten = true
+                queryResponse = (await (await resultsIterator).next()).value
             }
-            buffer.write("{\"Key\":")
-            buffer.write("\"")
-            buffer.write((await queryResponse).value.key)
-            buffer.write("\"")
-    
-            buffer.write(", \"Record\":")
-            // Record is a JSON object, so we write as-is
-            buffer.write(String((await queryResponse).value.value))
-            buffer.write("}")
-            bArrayMemberAlreadyWritten = true
-        }
-        buffer.write("]")    
-        return buffer;
+        } while (queryResponse);
+        resultJson += "]"
+        return resultJson;
     }
 
 
@@ -197,7 +196,7 @@ export class ProcessoEleitoral extends Contract {
         console.info('============= END : Create Participante ===========');
     }
 
-    public async submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string, proposta: string = '') {
+    public async submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string, proposta: string) {
         //verificar se periodo de candidatura.
         //verificar se já se candidatou para algum cargo nessa eleicao.
         //O link para confirmar candidatura chegará no email registrado?
