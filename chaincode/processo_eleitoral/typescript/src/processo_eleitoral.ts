@@ -59,36 +59,16 @@ export class ProcessoEleitoral extends Contract {
         }
         console.log(cargoAsBytes.toString());
                 
-        return "\nClientIdentity.getIDBytes " + ctx.clientIdentity.getIDBytes()  + " " +
-        "\n" + cargoAsBytes.toString();
+        // return "\nClientIdentity.getIDBytes " + ctx.clientIdentity.getIDBytes()  + " " +
+        // "\n" + cargoAsBytes.toString();
+        return cargoAsBytes.toString();
     }
 
-    //Needed to be a custom query through Rich couchDB query?
-    // public async queryAllCargosByEleicao(ctx: Context, eleicaoNumber: string): Promise<string> {
-    //     const startKey = 'CARGO0';
-    //     const endKey = 'CARGO999';
-    //     const allResults = [];
-    //     for await (const {key, value} of ctx.stub.getStateByRange(startKey, endKey)) {
-    //         const strValue = Buffer.from(value).toString('utf8');
-    //         let record;
-    //         try {
-    //             record = JSON.parse(strValue);
-    //         } catch (err) {
-    //             console.log(err);
-    //             record = strValue;
-    //         }
-    //         allResults.push({ Key: key, Record: record });
-    //     }
-
-    //     console.info(allResults);
-    //     return JSON.stringify(allResults);
-    // }
-
-    public async queryAllCargosByEleicao(ctx: Context, args: string ): Promise<string>{
+    public async queryAllCargosByEleicao(ctx: Context, eleicaoNum: string,  ): Promise<string>{
         //Promise<ChaincodeResponse
         // var eleicaoNum:string = args[0].toLowerCase()
     
-        var queryString = "{\"selector\":{\"docType\":\"cargo\",\"eleicaoNum\":\"" + args +"\"}}";
+        var queryString = "{\"selector\":{\"docType\":\"cargo\",\"eleicaoNum\":\"" + eleicaoNum +"\"}}";
     
         try {
             var queryResults = this.getQueryResultForQueryString(ctx, queryString);
@@ -136,7 +116,6 @@ export class ProcessoEleitoral extends Contract {
         resultJson += "]"
         return resultJson;
     }
-
 
     public async queryEleicao(ctx: Context, eleicaoNumber: string): Promise<string> {
         const eleicaoAsBytes = await ctx.stub.getState(eleicaoNumber);
@@ -205,17 +184,25 @@ export class ProcessoEleitoral extends Contract {
         const participanteResult = await this.queryEleicao(ctx, participanteNumber);
         const participante : Participante = JSON.parse(participanteResult);
 
+        const cargoResult = await this.queryCargo(ctx, cargoNumber);
+        const cargo : Cargo = JSON.parse(cargoResult);
+
+        const eleicaoResult = await this.queryEleicao(ctx, cargo.eleicaoNum);
+        cargo.eleicao = JSON.parse(eleicaoResult);
+
         const candidato : Candidato = {
-            docType: 'candidato',            
+            docType: 'candidato',
             nome: participante.nome,
             proposta: proposta,
             participanteNum: participanteNumber,            
             cargoNum: cargoNumber,
+            cargo: cargo,
         };
 
         const candidatoNum : string = 'CANDIDATO' + participanteNumber.replace('PARTICIPANTE','');
-        await ctx.stub.putState(candidatoNum, Buffer.from(JSON.stringify(candidato)));
-        return candidatoNum + " criado."  ;
+        var candidatoJson = JSON.stringify(candidato);
+        await ctx.stub.putState(candidatoNum, Buffer.from(candidatoJson));
+        return candidatoJson + " criado. ";
     }
 
     public async requestVoto(ctx: Context, participanteNumber: string, cpf: string, email: string) {
