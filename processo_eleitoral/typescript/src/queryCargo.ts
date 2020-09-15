@@ -43,6 +43,7 @@ async function main() {
         const result2 = await contract.evaluateTransaction('queryCargo', 'CARGO2');
         console.log(`${result2.toString()}\n`);
 
+        await gateway.disconnect();
 
     } catch (error) {
         console.error(`Failed to evaluate transaction: ${error}`);
