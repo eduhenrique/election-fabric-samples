@@ -34,16 +34,10 @@ async function main() {
 
         // Get the contract from the network.
         const contract = network.getContract('processo_eleitoral');
+        var aaa = new Date("2020-09-28T11:00:00");
+        var rs = await contract.submitTransaction('createEleicao', 'ELEICAO0', 'Diretoria 2020', aaa,new Date("2020-09-30T11:00:00"),new Date("2020-09-30T13:00:00"),new Date("2020-10-01T11:00:00"));
+        console.log(`Eleicao has been created/updated - ${aaa} `);
 
-        //submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string)
-        //COMO EU SEI QUE O USER UTILIZADO É O PARTICIPANTE 0, 1, 2? COmo associar user com um asset?
-        const result0 = await contract.submitTransaction('submitCandidato', 'PARTICIPANTE0', 'CARGO0', 'XD - Prometo Animes de qualdiade para todos.');
-        console.log(`Candidato no cargo0 has been submitted - `+`${result0.toString()}\n`);
-        const result1 = await contract.submitTransaction('submitCandidato', 'PARTICIPANTE1', 'CARGO1', '');
-        console.log(`Candidato no cargo1 has been submitted - `+`${result1.toString()}\n`);
-        const result2 = await contract.submitTransaction('submitCandidato', 'PARTICIPANTE2', 'CARGO1', 'Será feito um programa de inclusão social para a organização.');
-        console.log(`Candidato no cargo0 has been submitted - `+`${result2.toString()}\n`);
-        
         // Disconnect from the gateway.
         await gateway.disconnect();
 

@@ -24,10 +24,10 @@ export class ProcessoEleitoral extends Contract {
         {
             docType: "eleicao",
             nome: "Diretoria 2020",
-            inicio_candidatura: "2020-10-15T09:00",
-            final_candidatura: "2020-10-19T12:00",
-            inicio_votacao: "2020-10-19T12:01",
-            final_votacao: "2020-10-20T17:00",
+            inicio_candidatura: new Date("2020-10-15T06:00:00"),
+            final_candidatura: new Date("2020-10-19T12:00:00"),
+            inicio_votacao: new Date("2020-10-19T12:01:00"),
+            final_votacao: new Date("2020-10-20T17:00:00"),
         };
 
         const cargos : Cargo[] = [
@@ -52,6 +52,30 @@ export class ProcessoEleitoral extends Contract {
         console.info('============= END : Initialize Ledger ===========');
     }
 
+    public async createEleicao(ctx: Context, eleicaoNumber: string, nome: string, inicio_candidatura: Date, final_candidatura: Date, inicio_votacao: Date, final_votacao: Date ) {
+        console.info('============= START : Create Eleicao ===========');        
+        //verificar periodos (inicio candidatura tem que ser menor que fim candidatura...)
+
+        if (!(inicio_candidatura.valueOf() < final_candidatura.valueOf() 
+        && final_candidatura.valueOf() <= inicio_votacao.valueOf() 
+        && inicio_votacao.valueOf() < final_votacao.valueOf())){            
+            throw new Error('Periodos da eleição estão incoerentes. A candidatura deve ser antes da votação, e a data inicio deve ser antes da final.');            
+        }
+
+        const eleicao: Eleicao =
+        {
+            docType: "eleicao",
+            nome,
+            inicio_candidatura,
+            final_candidatura,
+            inicio_votacao,
+            final_votacao,
+        };
+
+        await ctx.stub.putState(eleicaoNumber, Buffer.from(JSON.stringify(eleicao)));
+        console.info('============= END : Create Eleicao ===========');
+    }
+
     public async queryCargo(ctx: Context, cargoNumber: string): Promise<string> {
         const cargoAsBytes = await ctx.stub.getState(cargoNumber);
         if (!cargoAsBytes || cargoAsBytes.length === 0) {
@@ -64,7 +88,7 @@ export class ProcessoEleitoral extends Contract {
         return cargoAsBytes.toString();
     }
 
-    public async queryAllCargosByEleicao(ctx: Context, eleicaoNum: string,  ): Promise<string>{
+    public async queryAllCargosByEleicao(ctx: Context, eleicaoNum: string): Promise<string>{
         //Promise<ChaincodeResponse
         // var eleicaoNum:string = args[0].toLowerCase()
     
@@ -80,41 +104,6 @@ export class ProcessoEleitoral extends Contract {
 
         console.info(queryResults);
         return queryResults;
-    }
-
-    private async getQueryResultForQueryString(ctx: Context, queryString: string): Promise<string> {
-        //Promise<ChaincodeResponse>
-        var resultsIterator = ctx.stub.getQueryResult(queryString);
-        var buffer = this.assemblyJsonResponseFromIterator(resultsIterator);    
-        return await buffer
-    }
-
-    private async assemblyJsonResponseFromIterator(resultsIterator: Promise<ShimApi.Iterators.StateQueryIterator> & AsyncIterable<ShimApi.Iterators.KV>) : Promise<string> {        
-        var resultJson : string = "[";
-
-        var memberAlreadyWritten = false
-        var queryResponse = (await (await resultsIterator).next()).value
-        do{
-            if (queryResponse){
-                // Add a comma before array members, suppress it for the first array member
-                if (memberAlreadyWritten == true) {
-                    resultJson+= ",";
-                }
-                resultJson+= "{\"Key\":";
-                resultJson+= "\"";
-                resultJson+= queryResponse.key;
-                resultJson+= "\"";
-        
-                resultJson+= ", \"Record\":";
-                // Record is a JSON object, so we write as-is
-                resultJson+= String(queryResponse.value);
-                resultJson+= "}";
-                memberAlreadyWritten = true
-                queryResponse = (await (await resultsIterator).next()).value
-            }
-        } while (queryResponse);
-        resultJson += "]"
-        return resultJson;
     }
 
     public async queryEleicao(ctx: Context, eleicaoNumber: string): Promise<string> {
@@ -162,7 +151,7 @@ export class ProcessoEleitoral extends Contract {
     }
 
     public async createParticipante(ctx: Context, participanteNumber: string, nome: string, cpf: string, email: string) {
-        console.info('============= START : Create Cargo ===========');
+        console.info('============= START : Create Participante ===========');
 
         const participante: Participante = {
             nome,
@@ -181,6 +170,8 @@ export class ProcessoEleitoral extends Contract {
         //O link para confirmar candidatura chegará no email registrado?
         //O código do chainchode permanece fechado?
 
+        //COMO EU SEI QUE O USER UTILIZADO É O PARTICIPANTE 0, 1, 2? COmo associar user com um asset?
+
         const participanteResult = await this.queryEleicao(ctx, participanteNumber);
         const participante : Participante = JSON.parse(participanteResult);
 
@@ -189,6 +180,13 @@ export class ProcessoEleitoral extends Contract {
 
         const eleicaoResult = await this.queryEleicao(ctx, cargo.eleicaoNum);
         cargo.eleicao = JSON.parse(eleicaoResult);
+
+        if (cargo.eleicao.inicio_candidatura.valueOf() > new Date().valueOf()){
+            throw new Error('Periodo de candidatura não começou.');
+        }
+        if (cargo.eleicao.final_candidatura.valueOf() < new Date().valueOf()){
+            throw new Error(`Periodo de candidatura já terminou.`);            
+        }
 
         const candidato : Candidato = {
             docType: 'candidato',
@@ -242,6 +240,45 @@ export class ProcessoEleitoral extends Contract {
         const votoNum : string = 'VOTO' + participanteNumber.replace('PARTICIPANTE','');
         await ctx.stub.putState(votoNum, Buffer.from(JSON.stringify(voto)));
         return votoNum + " criado. Identificador do usuário é: " + hash;
+    }
+
+    private async isPeriodoCandidatura(ctx: Context, eleicao: Eleicao){
+        // if (eleicao.inicio_candidatura < new Date())
+    }
+
+    private async getQueryResultForQueryString(ctx: Context, queryString: string): Promise<string> {
+        //Promise<ChaincodeResponse>
+        var resultsIterator = ctx.stub.getQueryResult(queryString);
+        var buffer = this.assemblyJsonResponseFromIterator(resultsIterator);    
+        return await buffer
+    }
+
+    private async assemblyJsonResponseFromIterator(resultsIterator: Promise<ShimApi.Iterators.StateQueryIterator> & AsyncIterable<ShimApi.Iterators.KV>) : Promise<string> {        
+        var resultJson : string = "[";
+
+        var memberAlreadyWritten = false
+        var queryResponse = (await (await resultsIterator).next()).value
+        do{
+            if (queryResponse){
+                // Add a comma before array members, suppress it for the first array member
+                if (memberAlreadyWritten == true) {
+                    resultJson+= ",";
+                }
+                resultJson+= "{\"Key\":";
+                resultJson+= "\"";
+                resultJson+= queryResponse.key;
+                resultJson+= "\"";
+        
+                resultJson+= ", \"Record\":";
+                // Record is a JSON object, so we write as-is
+                resultJson+= String(queryResponse.value);
+                resultJson+= "}";
+                memberAlreadyWritten = true
+                queryResponse = (await (await resultsIterator).next()).value
+            }
+        } while (queryResponse);
+        resultJson += "]"
+        return resultJson;
     }
 
 }
