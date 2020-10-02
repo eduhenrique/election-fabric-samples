@@ -33,10 +33,9 @@ async function main() {
         const network = await gateway.getNetwork('mychannel');
 
         // Get the contract from the network.
-        const contract = network.getContract('processo_eleitoral');
-        var aaa = new Date("2020-09-28T11:00:00");
-        var rs = await contract.submitTransaction('createEleicao', 'ELEICAO0', 'Diretoria 2020', aaa,new Date("2020-09-30T11:00:00"),new Date("2020-09-30T13:00:00"),new Date("2020-10-01T11:00:00"));
-        console.log(`Eleicao has been created/updated - ${aaa} `);
+        const contract = network.getContract('processo_eleitoral');        
+        var rs = await contract.submitTransaction('createEleicao', 'ELEICAO0', 'Diretoria 2020', new Date("2020-09-28T11:00:00"),new Date("2020-09-30T11:00:00"),new Date("2020-09-30T13:00:00"),new Date("2020-10-01T11:00:00"));
+        console.log(`Eleicao has been created/updated`);
 
         // Disconnect from the gateway.
         await gateway.disconnect();
