@@ -55,7 +55,8 @@ export class ProcessoEleitoral extends Contract {
     public async createEleicao(ctx: Context, eleicaoNumber: string, nome: string, inicio_candidatura: Date, final_candidatura: Date, inicio_votacao: Date, final_votacao: Date ) {
         console.info('============= START : Create Eleicao ===========');        
         //verificar periodos (inicio candidatura tem que ser menor que fim candidatura...)
-
+        //Como permitir que somente usuários admins utilizem essa função?
+        
         if (!(inicio_candidatura.valueOf() < final_candidatura.valueOf() 
         && final_candidatura.valueOf() <= inicio_votacao.valueOf() 
         && inicio_votacao.valueOf() < final_votacao.valueOf())){            
@@ -150,7 +151,7 @@ export class ProcessoEleitoral extends Contract {
         console.info('============= END : Create Cargo ===========');
     }
 
-    public async createParticipante(ctx: Context, participanteNumber: string, nome: string, cpf: string, email: string) {
+    public async createParticipante(ctx: Context, cpf: string, nome: string, email: string) {
         console.info('============= START : Create Participante ===========');
 
         const participante: Participante = {
@@ -160,19 +161,22 @@ export class ProcessoEleitoral extends Contract {
             email,
         };
 
-        await ctx.stub.putState(participanteNumber, Buffer.from(JSON.stringify(participante)));
+        //await ctx.stub.putState(participanteNumber, Buffer.from(JSON.stringify(participante)));
+        await ctx.stub.putState(cpf, Buffer.from(JSON.stringify(participante)));
         console.info('============= END : Create Participante ===========');
     }
 
-    public async submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string, proposta: string) {
+    public async submitCandidato(ctx: Context, cargoNumber: string, proposta: string) {
         //verificar se periodo de candidatura.
         //verificar se já se candidatou para algum cargo nessa eleicao.
         //O link para confirmar candidatura chegará no email registrado?
         //O código do chainchode permanece fechado?
 
-        //COMO EU SEI QUE O USER UTILIZADO É O PARTICIPANTE 0, 1, 2? COmo associar user com um asset?
+            //utilizar tag attr_reqs no momento de registrar o user - (registrar o user logo após criar o participante?
+            // utilizar o cpf como key?)
 
-        const participanteResult = await this.queryEleicao(ctx, participanteNumber);
+        var participanteKey = ctx.clientIdentity.getAttributeValue('cpf');
+        const participanteResult = await this.queryParticipante(ctx, participanteKey);
         const participante : Participante = JSON.parse(participanteResult);
 
         const cargoResult = await this.queryCargo(ctx, cargoNumber);
@@ -192,12 +196,12 @@ export class ProcessoEleitoral extends Contract {
             docType: 'candidato',
             nome: participante.nome,
             proposta: proposta,
-            participanteNum: participanteNumber,            
+            participanteNum: participanteKey,
             cargoNum: cargoNumber,
             cargo: cargo,
         };
 
-        const candidatoNum : string = 'CANDIDATO' + participanteNumber.replace('PARTICIPANTE','');
+        const candidatoNum : string = 'CANDIDATO_' + participanteKey;
         var candidatoJson = JSON.stringify(candidato);
         await ctx.stub.putState(candidatoNum, Buffer.from(candidatoJson));
         return candidatoJson + " criado. ";
