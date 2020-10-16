@@ -18,16 +18,16 @@ async function main() {
         console.log(`Wallet path: ${walletPath}`);
 
         // Check to see if we've already enrolled the user.
-        const identity = await wallet.get('appUser');
+        const identity = await wallet.get('EduK');
         if (!identity) {
-            console.log('An identity for the user "appUser" does not exist in the wallet');
+            console.log('An identity for the user "EduK" does not exist in the wallet');
             console.log('Run the registerUser.ts application before retrying');
             return;
         }
 
         // Create a new gateway for connecting to our peer node.
         const gateway = new Gateway();
-        await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: true } });
+        await gateway.connect(ccp, { wallet, identity: 'EduK', discovery: { enabled: true, asLocalhost: true } });
 
         // Get the network (channel) our contract is deployed to.
         const network = await gateway.getNetwork('mychannel');
@@ -37,12 +37,12 @@ async function main() {
 
         //submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string)
         //COMO EU SEI QUE O USER UTILIZADO É O PARTICIPANTE 0, 1, 2? COmo associar user com um asset?
-        const result0 = await contract.submitTransaction('submitCandidato', 'PARTICIPANTE0', 'CARGO0', 'XD - Prometo Animes de qualdiade para todos.');
+        const result0 = await contract.submitTransaction('submitCandidato', 'CARGO0', 'XD - Prometo Animes de qualdiade para todos.');
         console.log(`Candidato no cargo0 has been submitted - `+`${result0.toString()}\n`);
-        const result1 = await contract.submitTransaction('submitCandidato', 'PARTICIPANTE1', 'CARGO1', '');
-        console.log(`Candidato no cargo1 has been submitted - `+`${result1.toString()}\n`);
-        const result2 = await contract.submitTransaction('submitCandidato', 'PARTICIPANTE2', 'CARGO1', 'Será feito um programa de inclusão social para a organização.');
-        console.log(`Candidato no cargo0 has been submitted - `+`${result2.toString()}\n`);
+        // const result1 = await contract.submitTransaction('submitCandidato', 'PARTICIPANTE1', 'CARGO1', '');
+        // console.log(`Candidato no cargo1 has been submitted - `+`${result1.toString()}\n`);
+        // const result2 = await contract.submitTransaction('submitCandidato', 'PARTICIPANTE2', 'CARGO1', 'Será feito um programa de inclusão social para a organização.');
+        // console.log(`Candidato no cargo0 has been submitted - `+`${result2.toString()}\n`);
         
         // Disconnect from the gateway.
         await gateway.disconnect();

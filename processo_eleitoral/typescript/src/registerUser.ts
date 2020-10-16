@@ -25,7 +25,7 @@ async function main() {
         // Check to see if we've already enrolled the user.
         const userIdentity = await wallet.get('appUser');
         if (userIdentity) {
-            console.log('An identity for the user "appUser" already exists in the wallet');
+            console.log('An identity for the user "user1" already exists in the wallet');
             return;
         }
 
