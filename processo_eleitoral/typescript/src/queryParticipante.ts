@@ -36,7 +36,7 @@ async function main() {
         const contract = network.getContract('processo_eleitoral');
 
         // Evaluate the specified transaction.
-        const result = await contract.evaluateTransaction('queryParticipante', 'PARTICIPANTE0');
+        const result = await contract.evaluateTransaction('queryAsset', 'PARTICIPANTE0');
         console.log(`Transaction has been evaluated, result is: ${result.toString()}\n`);
 
         await gateway.disconnect();

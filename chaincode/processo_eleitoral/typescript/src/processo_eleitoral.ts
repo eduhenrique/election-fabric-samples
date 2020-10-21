@@ -77,16 +77,16 @@ export class ProcessoEleitoral extends Contract {
         console.info('============= END : Create Eleicao ===========');
     }
 
-    public async queryCargo(ctx: Context, cargoNumber: string): Promise<string> {
-        const cargoAsBytes = await ctx.stub.getState(cargoNumber);
-        if (!cargoAsBytes || cargoAsBytes.length === 0) {
-            throw new Error(`${cargoNumber} does not exist`);
+    public async queryAsset(ctx: Context, key: string): Promise<string> {
+        const assetAsBytes = await ctx.stub.getState(key);
+        if (!assetAsBytes || assetAsBytes.length === 0) {
+            throw new Error(`${key} does not exist`);
         }
-        console.log(cargoAsBytes.toString());
+        console.log(assetAsBytes.toString());
                 
         // return "\nClientIdentity.getIDBytes " + ctx.clientIdentity.getIDBytes()  + " " +
-        // "\n" + cargoAsBytes.toString();
-        return cargoAsBytes.toString();
+        // "\n" + assetAsBytes.toString();
+        return assetAsBytes.toString();
     }
 
     public async queryAllCargosByEleicao(ctx: Context, eleicaoNum: string): Promise<string>{
@@ -106,38 +106,11 @@ export class ProcessoEleitoral extends Contract {
         console.info(queryResults);
         return queryResults;
     }
-
-    public async queryEleicao(ctx: Context, eleicaoNumber: string): Promise<string> {
-        const eleicaoAsBytes = await ctx.stub.getState(eleicaoNumber);
-        if (!eleicaoAsBytes || eleicaoAsBytes.length === 0) {
-            throw new Error(`${eleicaoNumber} does not exist`);
-        }
-        console.log(eleicaoAsBytes.toString());
-        return eleicaoAsBytes.toString();
-    }
-
-    public async queryParticipante(ctx: Context, participanteNumber: string): Promise<string> {
-        const participanteAsBytes = await ctx.stub.getState(participanteNumber);
-        if (!participanteAsBytes || participanteAsBytes.length === 0) {
-            throw new Error(`${participanteNumber} does not exist`);
-        }
-        console.log(participanteAsBytes.toString());
-        return participanteAsBytes.toString();
-    }
-
-    public async queryCandidato(ctx: Context, candidatoNumber: string): Promise<string> {
-        const candidatoAsBytes = await ctx.stub.getState(candidatoNumber);
-        if (!candidatoAsBytes || candidatoAsBytes.length === 0) {
-            throw new Error(`${candidatoNumber} does not exist`);
-        }
-        console.log(candidatoAsBytes.toString());
-        return candidatoAsBytes.toString();
-    }
-
+    
     public async createCargo(ctx: Context, cargoNumber: string, nome: string, eleicaoNumber: string) {
         console.info('============= START : Create Cargo ===========');
         //verificar se é update ou create - fazer um getAll por Eleicao
-        const eleicaoResult = await this.queryEleicao(ctx, eleicaoNumber);
+        const eleicaoResult = await this.queryAsset(ctx, eleicaoNumber);
         const eleicao: Eleicao = JSON.parse(eleicaoResult);
         console.log(eleicaoResult);
 
@@ -176,13 +149,13 @@ export class ProcessoEleitoral extends Contract {
             // utilizar o cpf como key?)
 
         var participanteKey = ctx.clientIdentity.getAttributeValue('cpf');
-        const participanteResult = await this.queryParticipante(ctx, participanteKey);
+        const participanteResult = await this.queryAsset(ctx, participanteKey);
         const participante : Participante = JSON.parse(participanteResult);
 
-        const cargoResult = await this.queryCargo(ctx, cargoNumber);
+        const cargoResult = await this.queryAsset(ctx, cargoNumber);
         const cargo : Cargo = JSON.parse(cargoResult);
 
-        const eleicaoResult = await this.queryEleicao(ctx, cargo.eleicaoNum);
+        const eleicaoResult = await this.queryAsset(ctx, cargo.eleicaoNum);
         cargo.eleicao = JSON.parse(eleicaoResult);
 
         if (cargo.eleicao.inicio_candidatura.valueOf() > new Date().valueOf()){

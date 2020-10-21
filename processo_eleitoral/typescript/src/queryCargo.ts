@@ -36,11 +36,11 @@ async function main() {
         const contract = network.getContract('processo_eleitoral');
 
         // Evaluate the specified transaction.
-        const result = await contract.evaluateTransaction('queryCargo', 'CARGO0');
+        const result = await contract.evaluateTransaction('queryAsset', 'CARGO0');
         console.log(`Transaction has been evaluated, result is: ${result.toString()}\n`);
-        const result1 = await contract.evaluateTransaction('queryCargo', 'CARGO1');
+        const result1 = await contract.evaluateTransaction('queryAsset', 'CARGO1');
         console.log(`${result1.toString()}\n`);
-        const result2 = await contract.evaluateTransaction('queryCargo', 'CARGO2');
+        const result2 = await contract.evaluateTransaction('queryAsset', 'CARGO2');
         console.log(`${result2.toString()}\n`);
 
         await gateway.disconnect();
