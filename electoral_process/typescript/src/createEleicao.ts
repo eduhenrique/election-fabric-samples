@@ -33,20 +33,15 @@ async function main() {
         const network = await gateway.getNetwork('mychannel');
 
         // Get the contract from the network.
-        const contract = network.getContract('processo_eleitoral');
+        const contract = network.getContract('electoral_process');        
+        var rs = await contract.submitTransaction('createEleicao', 'ELEICAO0', 'Diretoria 2020', new Date("2020-09-28T11:00:00"),new Date("2020-09-30T11:00:00"),new Date("2020-09-30T13:00:00"),new Date("2020-10-01T11:00:00"));
+        console.log(`Eleicao has been created/updated`);
 
-        // Evaluate the specified transaction.
-        const result = await contract.evaluateTransaction('queryAsset', 'CARGO0');
-        console.log(`Transaction has been evaluated, result is: ${result.toString()}\n`);
-        const result1 = await contract.evaluateTransaction('queryAsset', 'CARGO1');
-        console.log(`${result1.toString()}\n`);
-        const result2 = await contract.evaluateTransaction('queryAsset', 'CARGO2');
-        console.log(`${result2.toString()}\n`);
-
+        // Disconnect from the gateway.
         await gateway.disconnect();
 
     } catch (error) {
-        console.error(`Failed to evaluate transaction: ${error}`);
+        console.error(`Failed to submit transaction: ${error}`);
         process.exit(1);
     }
 }

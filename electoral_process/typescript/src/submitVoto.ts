@@ -33,10 +33,18 @@ async function main() {
         const network = await gateway.getNetwork('mychannel');
 
         // Get the contract from the network.
-        const contract = network.getContract('processo_eleitoral');        
-        var rs = await contract.submitTransaction('createEleicao', 'ELEICAO0', 'Diretoria 2020', new Date("2020-09-28T11:00:00"),new Date("2020-09-30T11:00:00"),new Date("2020-09-30T13:00:00"),new Date("2020-10-01T11:00:00"));
-        console.log(`Eleicao has been created/updated`);
+        const contract = network.getContract('electoral_process');
 
+        //submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string)
+        const result0 = await contract.submitTransaction('submitVoto', 'PARTICIPANTE0', '', 'CANDIDATO0');
+        console.log(`Voto registrado para CANDIDATO0 - ` +`${result0.toString()}\n`);
+
+        const result1 = await contract.submitTransaction('submitVoto', 'PARTICIPANTE1', '', 'CANDIDATO0');
+        console.log(`Voto registrado para CANDIDATO0 - ` +`${result1.toString()}\n`);
+
+        const result2 = await contract.submitTransaction('submitVoto', 'PARTICIPANTE2', '', 'CANDIDATO2');
+        console.log(`Voto registrado para CANDIDATO2 - ` +`${result2.toString()}\n`);
+        
         // Disconnect from the gateway.
         await gateway.disconnect();
 

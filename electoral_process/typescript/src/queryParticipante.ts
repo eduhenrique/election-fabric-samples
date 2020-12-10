@@ -5,8 +5,6 @@
 import { Gateway, Wallets } from 'fabric-network';
 import * as path from 'path';
 import * as fs from 'fs';
-import { CreateParticipante } from './createParticipante';
-import { CreateUserParticipante } from './registerUserWithAttr';
 
 async function main() {
     try {
@@ -35,28 +33,15 @@ async function main() {
         const network = await gateway.getNetwork('mychannel');
 
         // Get the contract from the network.
-        const contract = network.getContract('processo_eleitoral');
-                 
-        await CreateParticipante.create(contract, '04212345678','Eduardo Kawai', 'edu@edu.edu');
-        await CreateUserParticipante.create('04212345678','EduK');
-        // await contract.submitTransaction('createParticipante', '04212345678', 'Eduardo Kawai', 'edu@edu.edu');
-        console.log(`PARTICIPANTE0 has been created`);
+        const contract = network.getContract('electoral_process');
 
-        await CreateParticipante.create(contract, '40467289107','Adrian Kawai', 'Adrian@Adrian.edu');
-        await CreateUserParticipante.create('40467289107','AdrianK');
-        // await contract.submitTransaction('createParticipante', '40467289107', 'Adrian Kawai', 'Adrian@Adrian.edu');
-        console.log(`PARTICIPANTE1 has been created`);
+        // Evaluate the specified transaction.
+        const result = await contract.evaluateTransaction('queryAsset', 'PARTICIPANTE0');
+        console.log(`Transaction has been evaluated, result is: ${result.toString()}\n`);
 
-        await CreateParticipante.create(contract, '12589045678', 'Derick Kawai', 'Derick@Derick.edu')
-        await CreateUserParticipante.create('12589045678','DerickK');
-        // await contract.submitTransaction('createParticipante', '12589045678', 'Derick Kawai', 'Derick@Derick.edu');
-        console.log(`PARTICIPANTE2 has been created`);
-
-        // Disconnect from the gateway.
         await gateway.disconnect();
-
     } catch (error) {
-        console.error(`Failed to InitiateParticipante: ${error}`);
+        console.error(`Failed to evaluate transaction: ${error}`);
         process.exit(1);
     }
 }

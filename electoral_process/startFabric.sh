@@ -37,8 +37,8 @@ cat <<EOF
 
 Total setup execution time : $(($(date +%s) - starttime)) secs ...
 
-Next, use the ProcessoEleitoral applications to interact with the deployed ProcessoEleitoral contract.
-The ProcessoEleitoral applications are available in multiple programming languages.
+Next, use the ElectoralProcess applications to interact with the deployed ElectoralProcess contract.
+The ElectoralProcess applications are available in multiple programming languages.
 Follow the instructions for the programming language of your choice:
 
 JavaScript:
@@ -51,7 +51,7 @@ JavaScript:
 
   Then run the following applications to enroll the admin user, and register a new user
   called appUser which will be used by the other applications to interact with the deployed
-  ProcessoEleitoral contract:
+  ElectoralProcess contract:
     node enrollAdmin
     node registerUser
 
@@ -76,7 +76,7 @@ TypeScript:
 
   Then run the following applications to enroll the admin user, and register a new user
   called appUser which will be used by the other applications to interact with the deployed
-  ProcessoEleitoral contract:
+  ElectoralProcess contract:
     node dist/enrollAdmin
     node dist/registerUser
 
