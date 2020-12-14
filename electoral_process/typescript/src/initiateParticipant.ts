@@ -5,6 +5,8 @@
 import { Gateway, Wallets } from 'fabric-network';
 import * as path from 'path';
 import * as fs from 'fs';
+import { CreateParticipant } from './createParticipant';
+import { CreateUserParticipant } from './registerUserWithAttr';
 
 async function main() {
     try {
@@ -34,22 +36,27 @@ async function main() {
 
         // Get the contract from the network.
         const contract = network.getContract('electoral_process');
+                 
+        await CreateParticipant.create(contract, '04212345678','Eduardo Kawai', 'edu@edu.edu');
+        await CreateUserParticipant.create('04212345678','EduK');
+        // await contract.submitTransaction('createParticipant', '04212345678', 'Eduardo Kawai', 'edu@edu.edu');
+        console.log(`PARTICIPANT0 has been created`);
 
-        //submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string)
-        const result0 = await contract.submitTransaction('submitVoto', 'PARTICIPANTE0', '', 'CANDIDATO0');
-        console.log(`Voto registrado para CANDIDATO0 - ` +`${result0.toString()}\n`);
+        await CreateParticipant.create(contract, '40467289107','Adrian Kawai', 'Adrian@Adrian.edu');
+        await CreateUserParticipant.create('40467289107','AdrianK');
+        // await contract.submitTransaction('createParticipant', '40467289107', 'Adrian Kawai', 'Adrian@Adrian.edu');
+        console.log(`PARTICIPANT1 has been created`);
 
-        const result1 = await contract.submitTransaction('submitVoto', 'PARTICIPANTE1', '', 'CANDIDATO0');
-        console.log(`Voto registrado para CANDIDATO0 - ` +`${result1.toString()}\n`);
+        await CreateParticipant.create(contract, '12589045678', 'Derick Kawai', 'Derick@Derick.edu')
+        await CreateUserParticipant.create('12589045678','DerickK');
+        // await contract.submitTransaction('createParticipant', '12589045678', 'Derick Kawai', 'Derick@Derick.edu');
+        console.log(`PARTICIPANT2 has been created`);
 
-        const result2 = await contract.submitTransaction('submitVoto', 'PARTICIPANTE2', '', 'CANDIDATO2');
-        console.log(`Voto registrado para CANDIDATO2 - ` +`${result2.toString()}\n`);
-        
         // Disconnect from the gateway.
         await gateway.disconnect();
 
     } catch (error) {
-        console.error(`Failed to submit transaction: ${error}`);
+        console.error(`Failed to InitiateParticipant: ${error}`);
         process.exit(1);
     }
 }

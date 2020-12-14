@@ -37,8 +37,12 @@ async function main() {
 
         //submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string)
         console.log('MASUQ');
-        const result0 = await contract.submitTransaction('queryAllCargosByEleicao', 'ELEICAO0');
-        console.log(`Resultado RichQuery ALL Cargos - ` +`${result0.toString()}\n`);
+
+        const result1 = await contract.submitTransaction('queryAllElections');
+        console.log(`Resultado RichQuery ALL Elections - ` +`${result1.toString()}\n`);
+
+        const result0 = await contract.submitTransaction('queryAllPositionsByElection', 'ELECTION0');
+        console.log(`Resultado RichQuery ALL Positions - ` +`${result0.toString()}\n`);
 
         // Disconnect from the gateway.
         await gateway.disconnect();

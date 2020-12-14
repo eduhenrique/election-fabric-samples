@@ -7,10 +7,10 @@ import * as FabricCAServices from 'fabric-ca-client';
 import * as path from 'path';
 import * as fs from 'fs';
 
-export class CreateUserParticipante{
+export class CreateUserParticipant{
     constructor() { }
 
-    static async create(cpf: string, nome: string) {
+    static async create(cpf: string, name: string) {
         try {
             // load the network configuration
             const ccpPath = path.resolve(__dirname, '..', '..', '..','test-network','organizations','peerOrganizations','org1.example.com', 'connection-org1.json');
@@ -27,9 +27,9 @@ export class CreateUserParticipante{
             console.log(`Wallet path: ${walletPath}`);
             
             // Check to see if we've already enrolled the user.
-            const userIdentity = await wallet.get(nome);
+            const userIdentity = await wallet.get(name);
             if (userIdentity) {
-                console.log("An identity for the user " + nome + " already exists in the wallet");
+                console.log("An identity for the user " + name + " already exists in the wallet");
                 return;
             }
     
@@ -46,9 +46,9 @@ export class CreateUserParticipante{
            const adminUser = await provider.getUserContext(adminIdentity, 'admin');
     
             // Register the user, enroll the user, and import the new identity into the wallet.
-            const secret = await ca.register({ enrollmentID: nome, affiliation: 'org1.department1', role: 'client', attrs: [{ name: 'cpf', value: cpf, ecert: true}] }, adminUser);
+            const secret = await ca.register({ enrollmentID: name, affiliation: 'org1.department1', role: 'client', attrs: [{ name: 'cpf', value: cpf, ecert: true}] }, adminUser);
             console.log(`Secret :  ${secret}\n`)
-            const enrollment = await ca.enroll({ enrollmentID: nome, enrollmentSecret: secret, attr_reqs: [{ name: 'cpf', optional: false }] });
+            const enrollment = await ca.enroll({ enrollmentID: name, enrollmentSecret: secret, attr_reqs: [{ name: 'cpf', optional: false }] });
 
             const x509Identity: X509Identity = {
                 credentials: {
@@ -58,11 +58,11 @@ export class CreateUserParticipante{
                 mspId: 'Org1MSP',
                 type: 'X.509',
             };
-            await wallet.put(nome, x509Identity);
-            console.log("Successfully registered and enrolled admin user " + nome + " and imported it into the wallet. \n");
+            await wallet.put(name, x509Identity);
+            console.log("Successfully registered and enrolled admin user " + name + " and imported it into the wallet. \n");
     
         } catch (error) {
-            console.error(`Failed to register user ${nome}: ${error}`);
+            console.error(`Failed to register user ${name}: ${error}`);
             process.exit(1);
         }
     }

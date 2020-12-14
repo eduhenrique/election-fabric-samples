@@ -35,14 +35,13 @@ async function main() {
         // Get the contract from the network.
         const contract = network.getContract('electoral_process');
 
-        await contract.submitTransaction('createCargo', 'CARGO2', 'Tesouraria', 'ELEICAO0');
-        console.log(`Cargo has been created`);
+        // Evaluate the specified transaction.
+        const result = await contract.evaluateTransaction('queryAsset', 'ELECTION0');        
+        console.log(`Transaction has been evaluated, result is: ${result.toString()}`);        
 
-        // Disconnect from the gateway.
         await gateway.disconnect();
-
     } catch (error) {
-        console.error(`Failed to submit transaction: ${error}`);
+        console.error(`Failed to evaluate transaction: ${error}`);
         process.exit(1);
     }
 }
