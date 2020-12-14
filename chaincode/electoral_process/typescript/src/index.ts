@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ProcessoEleitoral } from './processo_eleitoral';
-export { ProcessoEleitoral } from './processo_eleitoral';
+import { ElectoralProcess } from './electoral_process';
+export { ElectoralProcess } from './electoral_process';
 
-export const contracts: any[] = [ ProcessoEleitoral ];
+export const contracts: any[] = [ ElectoralProcess ];

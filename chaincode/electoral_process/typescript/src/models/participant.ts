@@ -1,7 +1,7 @@
 
-export class Participante {
+export class Participant {
     public docType?: string;
-    public nome: string;
+    public name: string;
     public cpf: string;
     public email: string;
 }

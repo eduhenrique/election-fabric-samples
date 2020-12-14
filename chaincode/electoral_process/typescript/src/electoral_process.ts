@@ -3,78 +3,78 @@
  */
 
 import { Context, Contract } from 'fabric-contract-api';
-import { Eleicao } from './models/eleicao';
-import { Cargo } from './models/cargo';
-import { Participante } from './models/participante';
+import { Election } from './models/election';
+import { Position } from './models/position';
+import { Participant } from './models/participant';
 import { Shim, ChaincodeResponse } from 'fabric-shim';
 import * as ShimApi from 'fabric-shim-api';
-import { Candidato } from './models/candidato';
-import { Voto } from './models/voto';
+import { Candidate } from './models/candidate';
+import { Vote } from './models/vote';
 // import * as fastSha256 from "fast-sha256";
 // import fastSha256, { Hash, HMAC } from "fast-sha256";
 import { throws } from 'assert';
 import { exception } from 'console';
 
 
-export class ProcessoEleitoral extends Contract {
+export class ElectoralProcess extends Contract {
 
     public async initLedger(ctx: Context) {
         console.info('============= START : Initialize Ledger ===========');
-        const eleicao : Eleicao =
+        const election : Election =
         {
-            docType: "eleicao",
-            nome: "Diretoria 2020",
-            inicio_candidatura: new Date("2020-10-15T06:00:00"),
-            final_candidatura: new Date("2020-10-19T12:00:00"),
-            inicio_votacao: new Date("2020-10-19T12:01:00"),
-            final_votacao: new Date("2020-10-20T17:00:00"),
+            docType: "election",
+            name: "Diretoria 2020",
+            candidacy_period_initial: new Date("2020-10-15T06:00:00"),
+            candidacy_period_final: new Date("2020-10-19T12:00:00"),
+            voting_period_initial: new Date("2020-10-19T12:01:00"),
+            voting_period_final: new Date("2020-10-20T17:00:00"),
         };
 
-        const cargos : Cargo[] = [
+        const positions : Position[] = [
             {
-                nome: "Diretor Geral",
-                eleicaoNum: "ELEICAO0",
-                // eleicao: eleicao,
+                name: "Diretor Geral",
+                electionNum: "ELECTION0",
+                // election: election,
             },
             {
-                nome: "Coordenador",
-                eleicaoNum: "ELEICAO0",
+                name: "Coordenador",
+                electionNum: "ELECTION0",
             }
         ];
         
-        await ctx.stub.putState('ELEICAO0', Buffer.from(JSON.stringify(eleicao)));
+        await ctx.stub.putState('ELECTION0', Buffer.from(JSON.stringify(election)));
 
-        for (let i = 0; i < cargos.length; i++) {
-            cargos[i].docType = 'cargo';
-            await ctx.stub.putState('CARGO' + i, Buffer.from(JSON.stringify(cargos[i])));
-            console.info('Added <--> ', cargos[i]);
+        for (let i = 0; i < positions.length; i++) {
+            positions[i].docType = 'position';
+            await ctx.stub.putState('POSITION' + i, Buffer.from(JSON.stringify(positions[i])));
+            console.info('Added <--> ', positions[i]);
         }
         console.info('============= END : Initialize Ledger ===========');
     }
 
-    public async createEleicao(ctx: Context, eleicaoNumber: string, nome: string, inicio_candidatura: Date, final_candidatura: Date, inicio_votacao: Date, final_votacao: Date ) {
-        console.info('============= START : Create Eleicao ===========');        
+    public async createElection(ctx: Context, electionNumber: string, name: string, candidacy_period_initial: Date, candidacy_period_final: Date, voting_period_initial: Date, voting_period_final: Date ) {
+        console.info('============= START : Create Election ===========');        
         //verificar periodos (inicio candidatura tem que ser menor que fim candidatura...)
         //Como permitir que somente usuários admins utilizem essa função?
         
-        if (!(inicio_candidatura.valueOf() < final_candidatura.valueOf() 
-        && final_candidatura.valueOf() <= inicio_votacao.valueOf() 
-        && inicio_votacao.valueOf() < final_votacao.valueOf())){            
+        if (!(candidacy_period_initial.valueOf() < candidacy_period_final.valueOf() 
+        && candidacy_period_final.valueOf() <= voting_period_initial.valueOf() 
+        && voting_period_initial.valueOf() < voting_period_final.valueOf())){            
             throw new Error('Periodos da eleição estão incoerentes. A candidatura deve ser antes da votação, e a data inicio deve ser antes da final.');            
         }
 
-        const eleicao: Eleicao =
+        const election: Election =
         {
-            docType: "eleicao",
-            nome,
-            inicio_candidatura,
-            final_candidatura,
-            inicio_votacao,
-            final_votacao,
+            docType: "election",
+            name,
+            candidacy_period_initial,
+            candidacy_period_final,
+            voting_period_initial,
+            voting_period_final,
         };
 
-        await ctx.stub.putState(eleicaoNumber, Buffer.from(JSON.stringify(eleicao)));
-        console.info('============= END : Create Eleicao ===========');
+        await ctx.stub.putState(electionNumber, Buffer.from(JSON.stringify(election)));
+        console.info('============= END : Create Election ===========');
     }
 
     public async queryAsset(ctx: Context, key: string): Promise<string> {
@@ -89,11 +89,29 @@ export class ProcessoEleitoral extends Contract {
         return assetAsBytes.toString();
     }
 
-    public async queryAllCargosByEleicao(ctx: Context, eleicaoNum: string): Promise<string>{
-        //Promise<ChaincodeResponse
-        // var eleicaoNum:string = args[0].toLowerCase()
+    /**
+     * queryAllElections
+     */
+    public async queryAllElections(ctx: Context):Promise<string> {
+        var queryString = "{\"selector\":{\"docType\":\"election\"}}";
     
-        var queryString = "{\"selector\":{\"docType\":\"cargo\",\"eleicaoNum\":\"" + eleicaoNum +"\"}}";
+        try {
+            var queryResults = this.getQueryResultForQueryString(ctx, queryString);
+        } catch (err) {
+            console.log(err);
+            var resultErr =  Shim.error(err.Error());
+            return "Message Err - " + resultErr.message + "  Payload - " + resultErr.payload.toString()
+        }
+
+        console.info(queryResults);
+        return queryResults;        
+    }
+
+    public async queryAllPositionsByElection(ctx: Context, electionNum: string): Promise<string>{
+        //Promise<ChaincodeResponse
+        // var electionNum:string = args[0].toLowerCase()
+    
+        var queryString = "{\"selector\":{\"docType\":\"position\",\"electionNum\":\"" + electionNum +"\"}}";
     
         try {
             var queryResults = this.getQueryResultForQueryString(ctx, queryString);
@@ -107,120 +125,135 @@ export class ProcessoEleitoral extends Contract {
         return queryResults;
     }
     
-    public async createCargo(ctx: Context, cargoNumber: string, nome: string, eleicaoNumber: string) {
-        console.info('============= START : Create Cargo ===========');
-        //verificar se é update ou create - fazer um getAll por Eleicao
-        const eleicaoResult = await this.queryAsset(ctx, eleicaoNumber);
-        const eleicao: Eleicao = JSON.parse(eleicaoResult);
-        console.log(eleicaoResult);
+    public async createPosition(ctx: Context, positionNumber: string, name: string, electionNumber: string) {
+        console.info('============= START : Create Position ===========');
+        //verificar se é update ou create - fazer um getAll por Election
+        const electionResult = await this.queryAsset(ctx, electionNumber);
+        const election: Election = JSON.parse(electionResult);
+        console.log(electionResult);
 
-        const cargo: Cargo = {
-            nome,
-            docType: 'cargo',
-            eleicaoNum: eleicaoNumber
+        const position: Position = {
+            name,
+            docType: 'position',
+            electionNum: electionNumber
         };
 
-        await ctx.stub.putState(cargoNumber, Buffer.from(JSON.stringify(cargo)));
-        console.info('============= END : Create Cargo ===========');
+        await ctx.stub.putState(positionNumber, Buffer.from(JSON.stringify(position)));
+        console.info('============= END : Create Position ===========');
     }
 
-    public async createParticipante(ctx: Context, cpf: string, nome: string, email: string) {
-        console.info('============= START : Create Participante ===========');
+    public async createParticipant(ctx: Context, cpf: string, name: string, email: string) {
+        console.info('============= START : Create Participant ===========');
 
-        const participante: Participante = {
-            nome,
-            docType: 'participante',
+        const participant: Participant = {
+            name,
+            docType: 'participant',
             cpf,
             email,
         };
 
-        //await ctx.stub.putState(participanteNumber, Buffer.from(JSON.stringify(participante)));
-        await ctx.stub.putState(cpf, Buffer.from(JSON.stringify(participante)));
-        console.info('============= END : Create Participante ===========');
+        //await ctx.stub.putState(participantNumber, Buffer.from(JSON.stringify(participant)));
+        await ctx.stub.putState(cpf, Buffer.from(JSON.stringify(participant)));
+        console.info('============= END : Create Participant ===========');
     }
 
-    public async submitCandidato(ctx: Context, cargoNumber: string, proposta: string) {
+    public async submitCandidate(ctx: Context, positionNumber: string, proposal: string) {
         //verificar se periodo de candidatura.
-        //verificar se já se candidatou para algum cargo nessa eleicao.
+        //verificar se já se candidateu para algum position nessa election.
         //O link para confirmar candidatura chegará no email registrado?
         //O código do chainchode permanece fechado?
 
-            //utilizar tag attr_reqs no momento de registrar o user - (registrar o user logo após criar o participante?
+            //utilizar tag attr_reqs no momento de registrar o user - (registrar o user logo após criar o participant?
             // utilizar o cpf como key?)
 
-        var participanteKey = ctx.clientIdentity.getAttributeValue('cpf');
-        const participanteResult = await this.queryAsset(ctx, participanteKey);
-        const participante : Participante = JSON.parse(participanteResult);
+        var participantKey = ctx.clientIdentity.getAttributeValue('cpf');
+        const participantResult = await this.queryAsset(ctx, participantKey);
+        const participant : Participant = JSON.parse(participantResult);
 
-        const cargoResult = await this.queryAsset(ctx, cargoNumber);
-        const cargo : Cargo = JSON.parse(cargoResult);
+        const positionResult = await this.queryAsset(ctx, positionNumber);
+        const position : Position = JSON.parse(positionResult);
 
-        const eleicaoResult = await this.queryAsset(ctx, cargo.eleicaoNum);
-        cargo.eleicao = JSON.parse(eleicaoResult);
+        const electionResult = await this.queryAsset(ctx, position.electionNum);
+        position.election = JSON.parse(electionResult);
 
-        if (cargo.eleicao.inicio_candidatura.valueOf() > new Date().valueOf()){
-            throw new Error('Periodo de candidatura não começou.');
+        if (position.election.candidacy_period_initial.valueOf() > new Date().valueOf()){
+            throw new Error('The candidacy period has not initiate.');
         }
-        if (cargo.eleicao.final_candidatura.valueOf() < new Date().valueOf()){
-            throw new Error(`Periodo de candidatura já terminou.`);            
+        if (position.election.candidacy_period_final.valueOf() < new Date().valueOf()){
+            throw new Error(`The candidacy period has already finished.`);            
         }
 
-        const candidato : Candidato = {
-            docType: 'candidato',
-            nome: participante.nome,
-            proposta: proposta,
-            participanteNum: participanteKey,
-            cargoNum: cargoNumber,
-            cargo: cargo,
+        const candidate : Candidate = {
+            docType: 'candidate',
+            name: participant.name,
+            proposal: proposal,
+            participantNum: participantKey,
+            positionNum: positionNumber,
+            position: position,
         };
 
-        const candidatoNum : string = 'CANDIDATO_' + participanteKey;
-        var candidatoJson = JSON.stringify(candidato);
-        await ctx.stub.putState(candidatoNum, Buffer.from(candidatoJson));
-        return candidatoJson + " criado. ";
+        const candidateNum : string = position.electionNum + '_CANDIDATE_' + participantKey;
+        var candidateJson = JSON.stringify(candidate);
+        await ctx.stub.putState(candidateNum, Buffer.from(candidateJson));
+        return candidateJson + " criado. ";
     }
 
-    public async requestVoto(ctx: Context, participanteNumber: string, cpf: string, email: string) {
+    public async requestVote(ctx: Context, participantNumber: string, cpf: string, email: string) {
         // a verificação sobre o eleitor acontece agora ou no momento do acesso? (register user)
         //hash for URL-safe base64-encoded 
         //verificar se periodo de votacao
-        //verificar se ja votou nessa eleicao/cargo 
+        //verificar se ja votou nessa election/position 
     }
     
-    public async submitVoto(ctx: Context, participanteNumber: string, cpf: string, candidatoNumber:string) {
-        //(o voto de uma eleicao só é registrado se todos os cargos forem selecionados/votados?)
+    public async submitVote(ctx: Context, candidateNumber:string) {
+        //(o voto de uma election só é registrado se todos os positions forem selecionados/votados?)
         var fastSha256 = require("fast-sha256");
         let idUint8Array = ctx.clientIdentity.getIDBytes();
         let hash = "";
+
+        //#region Get Position from candidate 
+        const candidateResult = await this.queryAsset(ctx, candidateNumber);
+        const candidate : Candidate = JSON.parse(candidateResult);
+
+        const positionResult = await this.queryAsset(ctx, candidate.positionNum);
+        const position : Position = JSON.parse(positionResult);
+        //#endregion
         
         //#region String To UInt8Array
-        let eleicaoKey = "ELEICAO"; // pegar dinamicamente query: candidato -> cargo -> eleicao
-        let buffer = new ArrayBuffer(eleicaoKey.length);
+        let electionKey = position.electionNum;
+        let buffer = new ArrayBuffer(electionKey.length);
         let salt = new Uint8Array(buffer);
-        for (let i = 0; i < eleicaoKey.length; i++) {
-            salt[i] = eleicaoKey.charCodeAt(i);
+        for (let i = 0; i < electionKey.length; i++) {
+            salt[i] = electionKey.charCodeAt(i);
         }
         //#endregion
         try{
             //let aaa = new HMAC(salt).digest();
-            let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da eleicao em questão?            
+            let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da election em questão?            
             hash = hashBytes.map(b => b.toString(16).padStart(2, '0')).join('');
         }
         catch(err){
             throw new Error(err.message);
         }
-        const voto : Voto = {
-            docType: 'voto',
-            eleitorHash: hash,
-            candidatoNum: candidatoNumber
+
+        const assetAsBytes = await ctx.stub.getState(hash);
+        //return "DISGRAÇA " + assetAsBytes;
+        if (assetAsBytes && assetAsBytes.length > 0) {
+            throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
+        }
+
+        const vote : Vote = {
+            docType: 'vote',
+            voterHash: hash,
+            candidateNum: candidateNumber
         };
-        const votoNum : string = 'VOTO' + participanteNumber.replace('PARTICIPANTE','');
-        await ctx.stub.putState(votoNum, Buffer.from(JSON.stringify(voto)));
-        return votoNum + " criado. Identificador do usuário é: " + hash;
+        const voteNum : string = hash;
+        await ctx.stub.putState(voteNum, Buffer.from(JSON.stringify(vote)));
+        return voteNum + " criado. Identificador do usuário é: " + hash;
     }
 
-    private async isPeriodoCandidatura(ctx: Context, eleicao: Eleicao){
-        // if (eleicao.inicio_candidatura < new Date())
+    private async isPeriodoCandidatura(ctx: Context, election: Election){
+        // if (election.candidacy_period_initial < new Date())
     }
 
     private async getQueryResultForQueryString(ctx: Context, queryString: string): Promise<string> {
