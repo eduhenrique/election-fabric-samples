@@ -37,8 +37,8 @@ async function main() {
         // Get the contract from the network.
         const contract = network.getContract('electoral_process');
                  
-        await CreateParticipant.create(contract, '04212345678','Eduardo Kawai', 'edu@edu.edu');
-        await CreateUserParticipant.create('04212345678','EduK');
+        await CreateParticipant.create(contract, '33312345678','Eduardo Kawai', 'edu@edu.edu');
+        await CreateUserParticipant.create('33312345678','EduK');
         // await contract.submitTransaction('createParticipant', '04212345678', 'Eduardo Kawai', 'edu@edu.edu');
         console.log(`PARTICIPANT0 has been created`);
 
