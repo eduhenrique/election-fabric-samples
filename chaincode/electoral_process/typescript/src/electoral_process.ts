@@ -12,6 +12,7 @@ import { Candidate } from './models/candidate';
 import { Vote } from './models/vote';
 // import * as fastSha256 from "fast-sha256";
 // import fastSha256, { Hash, HMAC } from "fast-sha256";
+import { SendEmail } from './send_email';
 import { throws } from 'assert';
 import { exception } from 'console';
 
@@ -145,6 +146,11 @@ export class ElectoralProcess extends Contract {
     public async createParticipant(ctx: Context, cpf: string, name: string, email: string) {
         console.info('============= START : Create Participant ===========');
 
+        const assetAsBytes = await ctx.stub.getState(cpf);
+        if (assetAsBytes && assetAsBytes.length > 0) {
+            throw new Error(`The participant with CPF: ${cpf} has already been registered before.`);
+        }
+
         const participant: Participant = {
             name,
             docType: 'participant',
@@ -157,14 +163,18 @@ export class ElectoralProcess extends Contract {
         console.info('============= END : Create Participant ===========');
     }
 
+    public async requestCandidacy(ctx: Context) {
+        //verificar se já é um candidato.
+        var participantKey = ctx.clientIdentity.getAttributeValue('cpf');
+        const participantResult = await this.queryAsset(ctx, participantKey);
+        const participant : Participant = JSON.parse(participantResult);
+    }
+
     public async submitCandidate(ctx: Context, positionNumber: string, proposal: string) {
         //verificar se periodo de candidatura.
         //verificar se já se candidateu para algum position nessa election.
         //O link para confirmar candidatura chegará no email registrado?
         //O código do chainchode permanece fechado?
-
-            //utilizar tag attr_reqs no momento de registrar o user - (registrar o user logo após criar o participant?
-            // utilizar o cpf como key?)
 
         var participantKey = ctx.clientIdentity.getAttributeValue('cpf');
         const participantResult = await this.queryAsset(ctx, participantKey);
@@ -175,7 +185,8 @@ export class ElectoralProcess extends Contract {
 
         const electionResult = await this.queryAsset(ctx, position.electionNum);
         position.election = JSON.parse(electionResult);
-
+                
+        // try to compare with .getTime() - verification do not working
         if (position.election.candidacy_period_initial.valueOf() > new Date().valueOf()){
             throw new Error('The candidacy period has not initiate.');
         }
@@ -198,11 +209,54 @@ export class ElectoralProcess extends Contract {
         return candidateJson + " criado. ";
     }
 
-    public async requestVote(ctx: Context, participantNumber: string, cpf: string, email: string) {
+    public async requestVote(ctx: Context, electionNum: string) {
         // a verificação sobre o eleitor acontece agora ou no momento do acesso? (register user)
         //hash for URL-safe base64-encoded 
         //verificar se periodo de votacao
-        //verificar se ja votou nessa election/position 
+        //verificar se ja votou nessa election/position
+
+        // var sender = require('./send_email')
+        
+        var participantKey = ctx.clientIdentity.getAttributeValue('cpf');
+        var participantResult = await this.queryAsset(ctx, participantKey);
+        var participant : Participant = JSON.parse(participantResult);
+
+        var electionResult = await this.queryAsset(ctx, electionNum);
+        var election: Election = JSON.parse(electionResult);
+        //user CPF + token by link ( confirmation email with a button)
+        
+        var fastSha256 = require("fast-sha256");
+        let idUint8Array = ctx.clientIdentity.getIDBytes();
+        let hash = "";
+
+        //#region String To UInt8Array
+        let electionKey = electionNum;
+        let buffer = new ArrayBuffer(electionKey.length);
+        let salt = new Uint8Array(buffer);
+        for (let i = 0; i < electionKey.length; i++) {
+            salt[i] = electionKey.charCodeAt(i);
+        }
+        //#endregion
+        try{
+            //let aaa = new HMAC(salt).digest();
+            let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da election em questão?            
+            hash = hashBytes.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        catch(err){
+            throw new Error(err.message);
+        }
+
+        const assetAsBytes = await ctx.stub.getState(hash);        
+        if (assetAsBytes && assetAsBytes.length > 0) {
+            throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
+        }
+
+        new SendEmail(
+            'eduhenrique.a@gmail.com',
+            participant.email,
+            'Request to vote - ' + election.name,
+            '<p>Link to grant access to the election poll - <a href="http://localhost:8080/api/getElectionForm/?token=' + hash + '&cpf='+ participantKey +'&electionNum='+ electionNum+' "></a> </p>'
+        ).sendMail();
     }
     
     public async submitVote(ctx: Context, candidateNumber:string) {
@@ -236,8 +290,7 @@ export class ElectoralProcess extends Contract {
             throw new Error(err.message);
         }
 
-        const assetAsBytes = await ctx.stub.getState(hash);
-        //return "DISGRAÇA " + assetAsBytes;
+        const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
             throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
         }

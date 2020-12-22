@@ -26,6 +26,7 @@ export class SendEmail{
     }
 
     setSender(email: string){
+        console.log("Mail to send")
         this.sender = this.nodemailer.createTransport({
             host: "smtp.gmail.com",
             service: "smtp.gmail.com",
@@ -39,4 +40,4 @@ export class SendEmail{
     }
 }
 
-new SendEmail('','','Teste SEND_MAIL',' TURURUUUUUUUU').sendMail();
+// new SendEmail('eduhenrique.a@gmail.com','eduardo.henriquealbuquerquedasilva@wexinc.com','Teste SEND_MAIL',' TURURUUUUUUUU').sendMail();
