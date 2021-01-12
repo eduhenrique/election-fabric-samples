@@ -163,6 +163,7 @@ export class ElectoralProcess extends Contract {
         console.info('============= END : Create Participant ===========');
     }
 
+    //send mail to confirm access
     public async requestCandidacy(ctx: Context) {
         //verificar se já é um candidato.
         var participantKey = ctx.clientIdentity.getAttributeValue('cpf');
@@ -170,6 +171,9 @@ export class ElectoralProcess extends Contract {
         const participant : Participant = JSON.parse(participantResult);
     }
 
+    /* back from email, the front end page should be returned and then, on the click of the front end page
+    * this function could be called to finally put the state of the candidacy.
+    */ 
     public async submitCandidate(ctx: Context, positionNumber: string, proposal: string) {
         //verificar se periodo de candidatura.
         //verificar se já se candidateu para algum position nessa election.
@@ -209,6 +213,7 @@ export class ElectoralProcess extends Contract {
         return candidateJson + " criado. ";
     }
 
+    //send mail to confirm access
     public async requestVote(ctx: Context, electionNum: string) {
         // a verificação sobre o eleitor acontece agora ou no momento do acesso? (register user)
         //hash for URL-safe base64-encoded 
@@ -259,6 +264,9 @@ export class ElectoralProcess extends Contract {
         ).sendMail();
     }
     
+    /* back from email, the front end page should be returned and then, on the click of the form,
+    * this function could be called to finally put the state of the vote.
+    */ 
     public async submitVote(ctx: Context, candidateNumber:string) {
         //(o voto de uma election só é registrado se todos os positions forem selecionados/votados?)
         var fastSha256 = require("fast-sha256");
