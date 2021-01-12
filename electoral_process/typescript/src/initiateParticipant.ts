@@ -38,17 +38,17 @@ async function main() {
         const contract = network.getContract('electoral_process');
                  
         await CreateParticipant.create(contract, '33312345678','Eduardo Kawai', 'edu@edu.edu');
-        await CreateUserParticipant.create('33312345678','EduK');
+        await CreateUserParticipant.create('33312345678','33312345678');
         // await contract.submitTransaction('createParticipant', '04212345678', 'Eduardo Kawai', 'edu@edu.edu');
         console.log(`PARTICIPANT0 has been created`);
 
         await CreateParticipant.create(contract, '40467289107','Adrian Kawai', 'Adrian@Adrian.edu');
-        await CreateUserParticipant.create('40467289107','AdrianK');
+        await CreateUserParticipant.create('40467289107','40467289107');
         // await contract.submitTransaction('createParticipant', '40467289107', 'Adrian Kawai', 'Adrian@Adrian.edu');
         console.log(`PARTICIPANT1 has been created`);
 
         await CreateParticipant.create(contract, '12589045678', 'Derick Kawai', 'Derick@Derick.edu')
-        await CreateUserParticipant.create('12589045678','DerickK');
+        await CreateUserParticipant.create('12589045678','12589045678');
         // await contract.submitTransaction('createParticipant', '12589045678', 'Derick Kawai', 'Derick@Derick.edu');
         console.log(`PARTICIPANT2 has been created`);
 

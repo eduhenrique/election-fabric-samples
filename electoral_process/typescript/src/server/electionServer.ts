@@ -8,25 +8,16 @@ app.use(bodyParser.json());
 const { Wallets, FileSystemWallet, Gateway } = require('fabric-network');
 const path = require('path');
 const fs = require('fs');
-
-// const ccpPath = path.resolve(__dirname, '..',  'connection-be1.json');
-// const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
-// ccp.peers['peer0.be1.burakcan-network.com'].tlsCACerts.pem = fs.readFileSync(path.resolve(__dirname, '..', ccp.peers['peer0.be1.burakcan-network.com'].tlsCACerts.path), 'utf8');
-// ccp.certificateAuthorities['ca.be1.burakcan-network.com'].tlsCACerts.pem = fs.readFileSync(path.resolve(__dirname, '..', ccp.certificateAuthorities['ca.be1.burakcan-network.com'].tlsCACerts.path), 'utf8');
-
+const walletPath = path.resolve(__dirname,'..','..','wallet');
 
 // load the network configuration
-console.log('before');
 const ccpPath = path.resolve(__dirname, '..', '..', '..', '..','test-network','organizations','peerOrganizations','org1.example.com', 'connection-org1.json');
-console.log('I FORGET');
 const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
-console.log('THAT');
 
 
 app.get('/api/queryAllElections', async function (req, res) {
     try {
-        // Create a new file system based wallet for managing identities.
-        const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
+        // Create a new file system based wallet for managing identities.        
         const wallet = await Wallets.newFileSystemWallet(walletPath);
         console.log(`Wallet path: ${walletPath}`);
 
@@ -65,8 +56,7 @@ app.get('/api/queryAllElections', async function (req, res) {
 
 app.get('/api/queryParticipant', async function (req, res) {
     try {
-        // Create a new file system based wallet for managing identities.
-        const walletPath = path.join(process.cwd(), 'wallet'); // the wallet path is only correct when this is runned at the same folder that the wallet.
+        // Create a new file system based wallet for managing identities.        
         const wallet = await Wallets.newFileSystemWallet(walletPath);
         console.log(`Wallet path: ${walletPath}`);
 
@@ -108,8 +98,7 @@ app.post('/api/addParticipant/', async function (req, res) {
         var createParticipant = require('../createParticipant');
         var registerUser = require('../registerUserWithAttr');
 
-        // Create a new file system based wallet for managing identities.
-        const walletPath = path.join(process.cwd(), 'wallet');
+        // Create a new file system based wallet for managing identities.        
         const wallet = await Wallets.newFileSystemWallet(walletPath);
         console.log(`Wallet path: ${walletPath}`);
 
@@ -150,15 +139,17 @@ app.post('/api/addParticipant/', async function (req, res) {
     }
 });
 
+//get requestCandidacy to assembly the page for user, them the post request to proceed
 app.post('/api/requestCandidacy/', async function (req, res) {
     try {
-        // Create a new file system based wallet for managing identities.
-        const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
+        // Create a new file system based wallet for managing identities.        
         const wallet = await Wallets.newFileSystemWallet(walletPath);
         console.log(`Wallet path: ${walletPath}`);
+        
+        let cpf: string = req.query.cpf;        
 
         // Check to see if we've already enrolled the user.
-        const userExists = await wallet.get('appUser');
+        const userExists = await wallet.get(cpf);
         if (!userExists) {
             console.log('An identity for the user "appUser" does not exist in the wallet');
             console.log('Run the registerUser.js application before retrying');
@@ -167,17 +158,17 @@ app.post('/api/requestCandidacy/', async function (req, res) {
 
         // Create a new gateway for connecting to our peer node.
         const gateway = new Gateway();        
-        await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: true } });
+        await gateway.connect(ccp, { wallet, identity: cpf, discovery: { enabled: true, asLocalhost: true } });
 
         // Get the network (channel) our contract is deployed to.
         const network = await gateway.getNetwork('mychannel');
 
         // Get the contract from the network.
         const contract = network.getContract('electoral_process');
-        
-        let cpf: string = req.query.cpf;
-        
 
+        const result0 = await contract.submitTransaction('requestCandidacy');
+        console.log(`Candidate request - `+`${result0.toString()}\n`);
+        
         // Disconnect from the gateway.
         await gateway.disconnect();
 
@@ -189,13 +180,14 @@ app.post('/api/requestCandidacy/', async function (req, res) {
 
 app.post('/api/submitToCandidate/', async function (req, res) {
     try {
-        // Create a new file system based wallet for managing identities.
-        const walletPath = path.resolve(__dirname, '..', '..', 'wallet');
+        // Create a new file system based wallet for managing identities.        
         const wallet = await Wallets.newFileSystemWallet(walletPath);
         console.log(`Wallet path: ${walletPath}`);
-
+        
+        let cpf: string = req.query.cpf;
+        
         // Check to see if we've already enrolled the user.
-        const userExists = await wallet.get('appUser');
+        const userExists = await wallet.get(cpf);
         if (!userExists) {
             console.log('An identity for the user "appUser" does not exist in the wallet');
             console.log('Run the registerUser.js application before retrying');
@@ -204,7 +196,7 @@ app.post('/api/submitToCandidate/', async function (req, res) {
 
         // Create a new gateway for connecting to our peer node.
         const gateway = new Gateway();        
-        await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: true } });
+        await gateway.connect(ccp, { wallet, identity: cpf, discovery: { enabled: true, asLocalhost: true } });
 
         // Get the network (channel) our contract is deployed to.
         const network = await gateway.getNetwork('mychannel');
@@ -212,7 +204,6 @@ app.post('/api/submitToCandidate/', async function (req, res) {
         // Get the contract from the network.
         const contract = network.getContract('electoral_process');
 
-        let cpf: string = req.query.cpf;
         let token: string = req.query.token;
         let position: string = req.body.position;
         let proposal: string = req.body.proposal;
@@ -231,8 +222,7 @@ app.post('/api/submitToCandidate/', async function (req, res) {
 
 app.get('/api/requestVote/', async function (req, res) {
     try {
-        // Create a new file system based wallet for managing identities.
-        const walletPath = path.join(process.cwd(), 'wallet');
+        // Create a new file system based wallet for managing identities.        
         const wallet = await Wallets.newFileSystemWallet(walletPath);
         console.log(`Wallet path: ${walletPath}`);
         
@@ -272,8 +262,7 @@ app.get('/api/requestVote/', async function (req, res) {
 
 app.get('/api/getElectionForm', async function (req, res) {
     try {
-        // Create a new file system based wallet for managing identities.
-        const walletPath = path.join(process.cwd(), 'wallet'); // the wallet path is only correct when this is runned at the same folder that the wallet.
+        // Create a new file system based wallet for managing identities.        
         const wallet = await Wallets.newFileSystemWallet(walletPath);
         console.log(`Wallet path: ${walletPath}`);
 
