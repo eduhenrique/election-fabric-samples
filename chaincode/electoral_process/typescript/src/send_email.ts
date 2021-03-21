@@ -4,16 +4,17 @@ export class SendEmail{
     private mailMounted : any;
     private nodemailer = require("nodemailer");
 
-    constructor(from: string, to: string, subject: string, text: string)
+    constructor(to: string, subject: string, text: string)
     {
-        this.mailMounted = {
+        require('dotenv').config();
 
-            from,
+        this.mailMounted = {
+            'from': process.env.EMAIL_SENDER,
             to,
             subject,
             text,
         };
-        this.setSender(from);
+        this.setSender();
     }
 
     sendMail(){
@@ -25,7 +26,7 @@ export class SendEmail{
         });
     }
 
-    setSender(email: string){
+    setSender(){
         console.log("Mail to send")
         this.sender = this.nodemailer.createTransport({
             host: "smtp.gmail.com",
@@ -33,11 +34,11 @@ export class SendEmail{
             port: 465,
             secure: true,
             auth:{
-                user: email,
-                pass: '' 
+                user: process.env.EMAIL_SENDER,
+                pass: process.env.EMAIL_PW
             }
         });
     }
 }
 
-// new SendEmail('eduhenrique.a@gmail.com','eduardo.henriquealbuquerquedasilva@wexinc.com','Teste SEND_MAIL',' TURURUUUUUUUU').sendMail();
+//  new SendEmail('dui.0312@hotmail.com','Teste SEND_MAIL',' TURURUUUUUUUU').sendMail();
