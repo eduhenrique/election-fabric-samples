@@ -164,11 +164,28 @@ export class ElectoralProcess extends Contract {
     }
 
     //send mail to confirm access
-    public async requestCandidacy(ctx: Context) {
+    public async requestCandidacy(ctx: Context, electionNum: string) {
         //verificar se já é um candidato.
         var participantKey = ctx.clientIdentity.getAttributeValue('cpf');
         const participantResult = await this.queryAsset(ctx, participantKey);
         const participant : Participant = JSON.parse(participantResult);
+
+        var electionResult = await this.queryAsset(ctx, electionNum);
+        var election: Election = JSON.parse(electionResult);
+        //user CPF + token by link ( confirmation email with a button)
+        
+        let hash = this.createToken(ctx, electionNum, "vote");
+
+        const assetAsBytes = await ctx.stub.getState(hash);        
+        if (assetAsBytes && assetAsBytes.length > 0) {
+            throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
+        }
+
+        new SendEmail(            
+            participant.email,
+            'Request to candidacy - ' + election.name,
+            '<p>Link to grant access to the candidate area - <a href="http://localhost:8080/api/candidacy/?token=' + hash + '&cpf='+ participantKey +'&electionNum='+ electionNum+' "></a> </p>'
+        ).sendMail();
     }
 
     /* back from email, the front end page should be returned and then, on the click of the front end page
@@ -230,79 +247,38 @@ export class ElectoralProcess extends Contract {
         var election: Election = JSON.parse(electionResult);
         //user CPF + token by link ( confirmation email with a button)
         
-        var fastSha256 = require("fast-sha256");
-        let idUint8Array = ctx.clientIdentity.getIDBytes();
-        let hash = "";
-
-        //#region String To UInt8Array
-        let electionKey = electionNum;
-        let buffer = new ArrayBuffer(electionKey.length);
-        let salt = new Uint8Array(buffer);
-        for (let i = 0; i < electionKey.length; i++) {
-            salt[i] = electionKey.charCodeAt(i);
-        }
-        //#endregion
-        try{
-            //let aaa = new HMAC(salt).digest();
-            let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da election em questão?            
-            hash = hashBytes.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-        catch(err){
-            throw new Error(err.message);
-        }
+        let hash = this.createToken(ctx, electionNum, "vote");
 
         const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
             throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
         }
 
-        new SendEmail(
-            'eduhenrique.a@gmail.com',
+        new SendEmail(            
             participant.email,
             'Request to vote - ' + election.name,
             '<p>Link to grant access to the election poll - <a href="http://localhost:8080/api/getElectionForm/?token=' + hash + '&cpf='+ participantKey +'&electionNum='+ electionNum+' "></a> </p>'
         ).sendMail();
-    }
+    }    
     
     /* back from email, the front end page should be returned and then, on the click of the form,
     * this function could be called to finally put the state of the vote.
     */ 
-    public async submitVote(ctx: Context, candidateNumber:string) {
-        //(o voto de uma election só é registrado se todos os positions forem selecionados/votados?)
-        var fastSha256 = require("fast-sha256");
-        let idUint8Array = ctx.clientIdentity.getIDBytes();
-        let hash = "";
-
+   public async submitVote(ctx: Context, candidateNumber:string) {
         //#region Get Position from candidate 
         const candidateResult = await this.queryAsset(ctx, candidateNumber);
         const candidate : Candidate = JSON.parse(candidateResult);
-
+        
         const positionResult = await this.queryAsset(ctx, candidate.positionNum);
         const position : Position = JSON.parse(positionResult);
         //#endregion
-        
-        //#region String To UInt8Array
-        let electionKey = position.electionNum;
-        let buffer = new ArrayBuffer(electionKey.length);
-        let salt = new Uint8Array(buffer);
-        for (let i = 0; i < electionKey.length; i++) {
-            salt[i] = electionKey.charCodeAt(i);
-        }
-        //#endregion
-        try{
-            //let aaa = new HMAC(salt).digest();
-            let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da election em questão?            
-            hash = hashBytes.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-        catch(err){
-            throw new Error(err.message);
-        }
+        let hash = this.createToken(ctx, position.electionNum, "vote");
 
         const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
             throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
         }
-
+        
         const vote : Vote = {
             docType: 'vote',
             voterHash: hash,
@@ -313,6 +289,30 @@ export class ElectoralProcess extends Contract {
         return voteNum + " criado. Identificador do usuário é: " + hash;
     }
 
+    private createToken(ctx: Context, electionNum: string, action: string) {
+        var fastSha256 = require("fast-sha256");
+        let idUint8Array = ctx.clientIdentity.getIDBytes();
+        let hash = "";
+
+        //#region String To UInt8Array
+        let electionKey = electionNum + "-" + action;
+        let buffer = new ArrayBuffer(electionKey.length);
+        let salt = new Uint8Array(buffer);
+        for (let i = 0; i < electionKey.length; i++) {
+            salt[i] = electionKey.charCodeAt(i);
+        }
+        //#endregion
+        try {
+            //let aaa = new HMAC(salt).digest();
+            let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da election em questão?            
+            hash = hashBytes.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        catch (err) {
+            throw new Error(err.message);
+        }
+        return hash;
+    }
+    
     private async isPeriodoCandidatura(ctx: Context, election: Election){
         // if (election.candidacy_period_initial < new Date())
     }
