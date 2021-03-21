@@ -15,8 +15,7 @@ export class CreateUserParticipant{
             // load the network configuration
             const ccpPath = path.resolve(__dirname, '..', '..', '..','test-network','organizations','peerOrganizations','org1.example.com', 'connection-org1.json');
             let ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
-            console.log(`load the network configuration`);
-    
+                
             // Create a new CA client for interacting with the CA.
             const caURL = ccp.certificateAuthorities['ca.org1.example.com'].url;
             const ca = new FabricCAServices(caURL);
@@ -59,7 +58,7 @@ export class CreateUserParticipant{
                 type: 'X.509',
             };
             await wallet.put(name, x509Identity);
-            console.log("Successfully registered and enrolled admin user " + name + " and imported it into the wallet. \n");
+            console.log("Successfully registered and enrolled admin user " + name + " and imported it into the wallet.");
     
         } catch (error) {
             console.error(`Failed to register user ${name}: ${error}`);

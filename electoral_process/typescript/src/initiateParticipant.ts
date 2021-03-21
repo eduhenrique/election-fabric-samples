@@ -50,7 +50,7 @@ async function main() {
         await CreateParticipant.create(contract, '12589045678', 'Derick Kawai', 'Derick@Derick.edu')
         await CreateUserParticipant.create('12589045678','12589045678');
         // await contract.submitTransaction('createParticipant', '12589045678', 'Derick Kawai', 'Derick@Derick.edu');
-        console.log(`PARTICIPANT2 has been created`);
+        console.log(`PARTICIPANT2 has been created. \n`);
 
         // Disconnect from the gateway.
         await gateway.disconnect();

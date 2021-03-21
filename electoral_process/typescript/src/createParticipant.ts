@@ -6,7 +6,7 @@ export class CreateParticipant{
 
     static async create(contract: any, cpf: string, dname: string, email: string) {
         try {
-    
+            console.log("_");
             console.log("Begin CreateParticipant");
             await contract.submitTransaction('createParticipant', cpf, dname, email);
             console.log(`PARTICIPANT ${dname} has been created`);
