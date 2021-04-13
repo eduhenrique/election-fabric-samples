@@ -10,9 +10,8 @@ import { Shim, ChaincodeResponse } from 'fabric-shim';
 import * as ShimApi from 'fabric-shim-api';
 import { Candidate } from './models/candidate';
 import { Vote } from './models/vote';
-// import * as fastSha256 from "fast-sha256";
-// import fastSha256, { Hash, HMAC } from "fast-sha256";
 import { SendEmail } from './send_email';
+import { CryptoStuff } from './crypto';
 import { throws } from 'assert';
 import { exception } from 'console';
 
@@ -29,6 +28,7 @@ export class ElectoralProcess extends Contract {
             candidacy_period_final: new Date("2020-10-19T12:00:00"),
             voting_period_initial: new Date("2020-10-19T12:01:00"),
             voting_period_final: new Date("2020-10-20T17:00:00"),
+            hasPartialResults: true
         };
 
         const positions : Position[] = [
@@ -53,7 +53,7 @@ export class ElectoralProcess extends Contract {
         console.info('============= END : Initialize Ledger ===========');
     }
 
-    public async createElection(ctx: Context, electionNumber: string, name: string, candidacy_period_initial: Date, candidacy_period_final: Date, voting_period_initial: Date, voting_period_final: Date ) {
+    public async createElection(ctx: Context, electionNumber: string, name: string, candidacy_period_initial: Date, candidacy_period_final: Date, voting_period_initial: Date, voting_period_final: Date, hasPartialResults: Boolean ) {
         console.info('============= START : Create Election ===========');        
         //verificar periodos (inicio candidatura tem que ser menor que fim candidatura...)
         //Como permitir que somente usuários admins utilizem essa função?
@@ -72,6 +72,7 @@ export class ElectoralProcess extends Contract {
             candidacy_period_final,
             voting_period_initial,
             voting_period_final,
+            hasPartialResults
         };
 
         await ctx.stub.putState(electionNumber, Buffer.from(JSON.stringify(election)));
@@ -174,11 +175,14 @@ export class ElectoralProcess extends Contract {
         var election: Election = JSON.parse(electionResult);
         //user CPF + token by link ( confirmation email with a button)
         
-        let hash = this.createToken(ctx, electionNum, "vote");
+        let idUint8Array = ctx.clientIdentity.getIDBytes();
+        let crypto = new CryptoStuff();
+        let hash = crypto.sha256Hashing(idUint8Array.toString());
+        //let hash = this.createToken(ctx, electionNum, "candidacy");
 
         const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
-            throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
+            throw new Error(`The candidate assigned for the key ${hash} has already registered as candidate for this election.`);
         }
 
         new SendEmail(            
@@ -194,8 +198,8 @@ export class ElectoralProcess extends Contract {
     public async submitCandidate(ctx: Context, positionNumber: string, proposal: string) {
         //verificar se periodo de candidatura.
         //verificar se já se candidateu para algum position nessa election.
-        //O link para confirmar candidatura chegará no email registrado?
-        //O código do chainchode permanece fechado?
+        
+        //Create hash token again and check agains the hash token received from the email
 
         var participantKey = ctx.clientIdentity.getAttributeValue('cpf');
         const participantResult = await this.queryAsset(ctx, participantKey);
@@ -247,7 +251,10 @@ export class ElectoralProcess extends Contract {
         var election: Election = JSON.parse(electionResult);
         //user CPF + token by link ( confirmation email with a button)
         
-        let hash = this.createToken(ctx, electionNum, "vote");
+        let idUint8Array = ctx.clientIdentity.getIDBytes();
+        let crypto = new CryptoStuff();
+        let hash = crypto.sha256Hashing(idUint8Array.toString());
+        //let hash = this.createToken(ctx, electionNum, "vote");
 
         const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
@@ -272,7 +279,11 @@ export class ElectoralProcess extends Contract {
         const positionResult = await this.queryAsset(ctx, candidate.positionNum);
         const position : Position = JSON.parse(positionResult);
         //#endregion
-        let hash = this.createToken(ctx, position.electionNum, "vote");
+
+        let idUint8Array = ctx.clientIdentity.getIDBytes();
+        let crypto = new CryptoStuff();
+        let hash = crypto.sha256Hashing(idUint8Array.toString());
+        //let hash = this.createToken(ctx, position.electionNum, "vote");
 
         const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
@@ -287,6 +298,14 @@ export class ElectoralProcess extends Contract {
         const voteNum : string = hash;
         await ctx.stub.putState(voteNum, Buffer.from(JSON.stringify(vote)));
         return voteNum + " criado. Identificador do usuário é: " + hash;
+    }
+
+    private async submitVoteWithParcialResult(ctx: Context, candidateNumber:string){
+
+    }
+
+    private async submitVoteWithTallyResult(ctx: Context, candidateNumber:string){
+
     }
 
     private createToken(ctx: Context, electionNum: string, action: string) {

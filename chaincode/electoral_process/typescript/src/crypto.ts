@@ -1,10 +1,8 @@
-import { JSONSerializer } from 'fabric-contract-api';
-import { Position } from './models/position';
 
 export class CryptoStuff{    
     private cryptoImported = require('crypto');
 
-    constructor()
+    public constructor()
     {
         require('dotenv').config();
     }
@@ -54,6 +52,7 @@ export class CryptoStuff{
     private hex(text:any){
         const hash = text.digest("hex");
         console.log("  HMAC-HEX", hash);
+        return hash;
     }
 
     public testing(){
@@ -82,4 +81,4 @@ export class CryptoStuff{
     } 
 }
 
-  new CryptoStuff();
+//new CryptoStuff().testing();
