@@ -171,8 +171,8 @@ export class ElectoralProcess extends Contract {
         const participantResult = await this.queryAsset(ctx, participantKey);
         const participant : Participant = JSON.parse(participantResult);
 
-        var electionResult = await this.queryAsset(ctx, electionNum);
-        var election: Election = JSON.parse(electionResult);
+        let electionResult = await this.queryAsset(ctx, electionNum);
+        let election: Election = JSON.parse(electionResult);
         //user CPF + token by link ( confirmation email with a button)
         
         let idUint8Array = ctx.clientIdentity.getIDBytes();
@@ -188,7 +188,7 @@ export class ElectoralProcess extends Contract {
         new SendEmail(            
             participant.email,
             'Request to candidacy - ' + election.name,
-            '<p>Link to grant access to the candidate area - <a href="http://localhost:8080/api/candidacy/?token=' + hash + '&cpf='+ participantKey +'&electionNum='+ electionNum+' "></a> </p>'
+            '<p>Link to grant access to the candidate area - <a href="http://localhost:8080/api/candidacy/?token=' + hash +'&electionNum='+ electionNum +' "></a> </p>'
         ).sendMail();
     }
 
@@ -264,20 +264,20 @@ export class ElectoralProcess extends Contract {
         new SendEmail(            
             participant.email,
             'Request to vote - ' + election.name,
-            '<p>Link to grant access to the election poll - <a href="http://localhost:8080/api/getElectionForm/?token=' + hash + '&cpf='+ participantKey +'&electionNum='+ electionNum+' "></a> </p>'
+            '<p>Link to grant access to the election poll - <a href="http://localhost:8080/api/getElectionForm/?token=' + hash +'&electionNum='+ electionNum +' "></a> </p>'
         ).sendMail();
     }    
     
     /* back from email, the front end page should be returned and then, on the click of the form,
     * this function could be called to finally put the state of the vote.
     */ 
-   public async submitVote(ctx: Context, candidateNumber:string) {
-        //#region Get Position from candidate 
-        const candidateResult = await this.queryAsset(ctx, candidateNumber);
-        const candidate : Candidate = JSON.parse(candidateResult);
+   public async submitVote(ctx: Context, requestHash: string, candidateNumbers:Array<string>) {
+        //#region Get Position from candidate
+         const candidateResult = await this.queryAsset(ctx, candidateNumbers[0]);
+         const candidate : Candidate = JSON.parse(candidateResult);
         
-        const positionResult = await this.queryAsset(ctx, candidate.positionNum);
-        const position : Position = JSON.parse(positionResult);
+         const positionResult = await this.queryAsset(ctx, candidate.positionNum);
+         const position : Position = JSON.parse(positionResult);
         //#endregion
 
         let idUint8Array = ctx.clientIdentity.getIDBytes();
@@ -285,15 +285,20 @@ export class ElectoralProcess extends Contract {
         let hash = crypto.sha256Hashing(idUint8Array.toString());
         //let hash = this.createToken(ctx, position.electionNum, "vote");
 
+        if (requestHash != hash){
+            throw new Error(`The voter is not the same one who requested to vote.`);
+        }
+
         const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
             throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
         }
-        
+        //checkToSubmitVote(ctx: Context)
         const vote : Vote = {
             docType: 'vote',
             voterHash: hash,
-            candidateNum: candidateNumber
+            candidateNumbers,
+            electionNum: position.electionNum
         };
         const voteNum : string = hash;
         await ctx.stub.putState(voteNum, Buffer.from(JSON.stringify(vote)));
@@ -306,6 +311,24 @@ export class ElectoralProcess extends Contract {
 
     private async submitVoteWithTallyResult(ctx: Context, candidateNumber:string){
 
+    }
+
+    private async checkToSubmitVote(ctx: Context){
+        //Check if there is a vote under this election with the Voter Hash
+        //Check voting period.
+    }
+
+    private async checkToSubmitCandidacy(ctx: Context){
+        //Check if there is a candidacy under this election with the same participant
+        // {
+        //     "selector": {
+        //        "docType": "candidate",
+        //        "participantNum": "33312345678",
+        //        "electionNum": "ELECTION0"
+        //     }
+        //  }
+
+        //Check candidacy period.
     }
 
     private createToken(ctx: Context, electionNum: string, action: string) {
@@ -334,6 +357,11 @@ export class ElectoralProcess extends Contract {
     
     private async isPeriodoCandidatura(ctx: Context, election: Election){
         // if (election.candidacy_period_initial < new Date())
+    }
+
+    //Justo to development quick
+    public async IdFromUserRequesting(ctx:Context){
+        return "\nClientIdentity.getIDBytes " + ctx.clientIdentity.getIDBytes();
     }
 
     private async getQueryResultForQueryString(ctx: Context, queryString: string): Promise<string> {

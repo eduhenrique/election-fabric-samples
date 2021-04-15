@@ -36,7 +36,7 @@ async function main() {
         const contract = network.getContract('electoral_process');
 
         //submitCandidato(ctx: Context, participanteNumber: string, cargoNumber: string)
-        const result0 = await contract.submitTransaction('submitVote', 'ELECTION0_CANDIDATE_33312345678');
+        const result0 = await contract.submitTransaction('submitVote', 'RequestedHash' ,'ELECTION0_CANDIDATE_33312345678');
         console.log(`Vote registered for CANDIDATE_33312345678 - ` +`${result0.toString()}\n`);
 
         // const result1 = await contract.submitTransaction('submitVote', 'CANDIDATE0');
