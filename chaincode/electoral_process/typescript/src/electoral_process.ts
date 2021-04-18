@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Context, Contract } from 'fabric-contract-api';
+import { Context, Contract, JSONSerializer } from 'fabric-contract-api';
 import { Election } from './models/election';
 import { Position } from './models/position';
 import { Participant } from './models/participant';
@@ -271,9 +271,11 @@ export class ElectoralProcess extends Contract {
     /* back from email, the front end page should be returned and then, on the click of the form,
     * this function could be called to finally put the state of the vote.
     */ 
-   public async submitVote(ctx: Context, requestHash: string, candidateNumbers:Array<string>) {
+   public async submitVote(ctx: Context, requestHash: string, candidateNumbers: string) {
+        // require('dotenv').config();
         //#region Get Position from candidate
-         const candidateResult = await this.queryAsset(ctx, candidateNumbers[0]);
+        let candidateNumArray = candidateNumbers.split(',');
+         const candidateResult = await this.queryAsset(ctx, candidateNumArray[0]);
          const candidate : Candidate = JSON.parse(candidateResult);
         
          const positionResult = await this.queryAsset(ctx, candidate.positionNum);
@@ -286,7 +288,7 @@ export class ElectoralProcess extends Contract {
         //let hash = this.createToken(ctx, position.electionNum, "vote");
 
         if (requestHash != hash){
-            throw new Error(`The voter is not the same one who requested to vote.`);
+            throw new Error(`The voter is not the same one who requested to vote. - \n${hash} \n${requestHash} \n${idUint8Array.toString()}`);
         }
 
         const assetAsBytes = await ctx.stub.getState(hash);        
@@ -297,12 +299,12 @@ export class ElectoralProcess extends Contract {
         const vote : Vote = {
             docType: 'vote',
             voterHash: hash,
-            candidateNumbers,
+            candidateNumbers: candidateNumArray,
             electionNum: position.electionNum
         };
         const voteNum : string = hash;
         await ctx.stub.putState(voteNum, Buffer.from(JSON.stringify(vote)));
-        return voteNum + " criado. Identificador do usuário é: " + hash;
+        return voteNum + " created";
     }
 
     private async submitVoteWithParcialResult(ctx: Context, candidateNumber:string){
@@ -361,7 +363,7 @@ export class ElectoralProcess extends Contract {
 
     //Justo to development quick
     public async IdFromUserRequesting(ctx:Context){
-        return "\nClientIdentity.getIDBytes " + ctx.clientIdentity.getIDBytes();
+        return "" + ctx.clientIdentity.getIDBytes()  + "";        
     }
 
     private async getQueryResultForQueryString(ctx: Context, queryString: string): Promise<string> {
