@@ -34,7 +34,7 @@ async function main() {
 
         // Get the contract from the network.
         const contract = network.getContract('electoral_process');        
-        var rs = await contract.submitTransaction('createElection', 'ELECTION0', 'Diretoria 2020', new Date("2020-09-28T11:00:00"),new Date("2020-09-30T11:00:00"),new Date("2020-09-30T13:00:00"),new Date("2020-10-01T11:00:00"), false);
+        var rs = await contract.submitTransaction('createElection', 'ELECTION0', 'Diretoria 2020', new Date("2020-09-28T11:00:00"),new Date("2020-09-30T11:00:00"),new Date("2020-09-30T13:00:00"),new Date("2020-10-01T11:00:00"));
         console.log(`Election has been created/updated`);
 
         // Disconnect from the gateway.

@@ -6,7 +6,7 @@ async function main(){
     
     let id = await new RequestIdentity().main('33312345678');
     console.log(id);
-    let voterHash = new CryptoStuff().sha256Hashing(id)
+    let voterHash = await new CryptoStuff().sha256Hashing(id)
     console.log('voterHash:\n'+voterHash);
     
     let candidateNumList = new Array<string>(

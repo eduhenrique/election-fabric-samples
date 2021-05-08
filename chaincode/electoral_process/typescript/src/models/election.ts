@@ -4,6 +4,5 @@ export class Election {
     public candidacy_period_initial: Date;
     public candidacy_period_final: Date;
     public voting_period_initial: Date;
-    public voting_period_final: Date;
-    public hasPartialResults: Boolean;
+    public voting_period_final: Date;    
 }

@@ -7,7 +7,7 @@ export class CryptoStuff{
         require('dotenv').config();
     }
 
-    public aesGcmEncrypt(str : string)
+    public async aesGcmEncrypt(str : string)
     {
         const key = process.env.TOKEN_KEY;
         const iv = this.cryptoImported.randomBytes(12);        
@@ -22,7 +22,7 @@ export class CryptoStuff{
         return enc;
     }
 
-    public aesGcmDecrypt(encrypted : any)
+    public async aesGcmDecrypt(encrypted : any)
     {
         let fullString = encrypted;
         let tag = fullString.slice(fullString.length - 32, fullString.length);
@@ -41,7 +41,7 @@ export class CryptoStuff{
         return str;
     }   
 
-    public sha256Hashing(text : string)
+    public async sha256Hashing(text : string)
     {
         var plaintext = this.cryptoImported.createHmac("sha256", process.env.TOKEN_KEY)
         .update(text)
@@ -49,7 +49,7 @@ export class CryptoStuff{
         return hash;
     }
 
-    private hex(text:any){
+    private async hex(text:any){
         const hash = text.digest("hex");
         console.log("  HMAC-HEX", hash);
         return hash;

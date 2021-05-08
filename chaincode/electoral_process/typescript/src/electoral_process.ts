@@ -14,6 +14,7 @@ import { SendEmail } from './send_email';
 import { CryptoStuff } from './crypto';
 import { throws } from 'assert';
 import { exception } from 'console';
+import { EncryptedVote } from './models/encryptedVote';
 
 
 export class ElectoralProcess extends Contract {
@@ -27,8 +28,7 @@ export class ElectoralProcess extends Contract {
             candidacy_period_initial: new Date("2020-10-15T06:00:00"),
             candidacy_period_final: new Date("2020-10-19T12:00:00"),
             voting_period_initial: new Date("2020-10-19T12:01:00"),
-            voting_period_final: new Date("2020-10-20T17:00:00"),
-            hasPartialResults: true
+            voting_period_final: new Date("2020-10-20T17:00:00")
         };
 
         const positions : Position[] = [
@@ -53,14 +53,14 @@ export class ElectoralProcess extends Contract {
         console.info('============= END : Initialize Ledger ===========');
     }
 
-    public async createElection(ctx: Context, electionNumber: string, name: string, candidacy_period_initial: Date, candidacy_period_final: Date, voting_period_initial: Date, voting_period_final: Date, hasPartialResults: Boolean ) {
+    public async createElection(ctx: Context, electionNumber: string, name: string, candidacy_period_initial: Date, candidacy_period_final: Date, voting_period_initial: Date, voting_period_final: Date) {
         console.info('============= START : Create Election ===========');        
         //verificar periodos (inicio candidatura tem que ser menor que fim candidatura...)
         //Como permitir que somente usuários admins utilizem essa função?
         
-        if (!(candidacy_period_initial.valueOf() < candidacy_period_final.valueOf() 
-        && candidacy_period_final.valueOf() <= voting_period_initial.valueOf() 
-        && voting_period_initial.valueOf() < voting_period_final.valueOf())){            
+        if (!(candidacy_period_initial < candidacy_period_final 
+        && candidacy_period_final <= voting_period_initial 
+        && voting_period_initial < voting_period_final)){            
             throw new Error('Periodos da eleição estão incoerentes. A candidatura deve ser antes da votação, e a data inicio deve ser antes da final.');            
         }
 
@@ -72,7 +72,6 @@ export class ElectoralProcess extends Contract {
             candidacy_period_final,
             voting_period_initial,
             voting_period_final,
-            hasPartialResults
         };
 
         await ctx.stub.putState(electionNumber, Buffer.from(JSON.stringify(election)));
@@ -173,12 +172,14 @@ export class ElectoralProcess extends Contract {
 
         let electionResult = await this.queryAsset(ctx, electionNum);
         let election: Election = JSON.parse(electionResult);
-        //user CPF + token by link ( confirmation email with a button)
+
+        if (await !this.isCandidacyTime(ctx, election)){
+            throw new Error('The election is not on candidacy period.');
+        }
         
         let idUint8Array = ctx.clientIdentity.getIDBytes();
         let crypto = new CryptoStuff();
-        let hash = crypto.sha256Hashing(idUint8Array.toString());
-        //let hash = this.createToken(ctx, electionNum, "candidacy");
+        let hash = await crypto.sha256Hashing(idUint8Array.toString());
 
         const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
@@ -212,11 +213,8 @@ export class ElectoralProcess extends Contract {
         position.election = JSON.parse(electionResult);
                 
         // try to compare with .getTime() - verification do not working
-        if (position.election.candidacy_period_initial.valueOf() > new Date().valueOf()){
-            throw new Error('The candidacy period has not initiate.');
-        }
-        if (position.election.candidacy_period_final.valueOf() < new Date().valueOf()){
-            throw new Error(`The candidacy period has already finished.`);            
+        if (await !this.isCandidacyTime(ctx, position.election)){
+            throw new Error('The election is not on candidacy period.');
         }
 
         const candidate : Candidate = {
@@ -249,34 +247,34 @@ export class ElectoralProcess extends Contract {
 
         var electionResult = await this.queryAsset(ctx, electionNum);
         var election: Election = JSON.parse(electionResult);
-        //user CPF + token by link ( confirmation email with a button)
         
         let idUint8Array = ctx.clientIdentity.getIDBytes();
         let crypto = new CryptoStuff();
-        let hash = crypto.sha256Hashing(idUint8Array.toString());
-        //let hash = this.createToken(ctx, electionNum, "vote");
+        let hash = await crypto.sha256Hashing(idUint8Array.toString());
 
         const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
             throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
         }
 
+        var securedHash = await crypto.aesGcmEncrypt(hash)
+
         new SendEmail(            
             participant.email,
             'Request to vote - ' + election.name,
-            '<p>Link to grant access to the election poll - <a href="http://localhost:8080/api/getElectionForm/?token=' + hash +'&electionNum='+ electionNum +' "></a> </p>'
+            '<p>Link to grant access to the election poll - <a href="http://localhost:8080/api/getElectionForm/?token=' + securedHash +'&electionNum='+ electionNum +' "></a> </p>'
         ).sendMail();
     }    
     
     /* back from email, the front end page should be returned and then, on the click of the form,
     * this function could be called to finally put the state of the vote.
     */ 
-   public async submitVote(ctx: Context, requestHash: string, candidateNumbers: string) {
-        // require('dotenv').config();
+   public async submitVote(ctx: Context, requestSecuredHash: string, candidateNumbers: string) {        
         //#region Get Position from candidate
         let candidateNumArray = candidateNumbers.split(',');
          const candidateResult = await this.queryAsset(ctx, candidateNumArray[0]);
          const candidate : Candidate = JSON.parse(candidateResult);
+         //double check if there is a candidate for each existed position
         
          const positionResult = await this.queryAsset(ctx, candidate.positionNum);
          const position : Position = JSON.parse(positionResult);
@@ -284,43 +282,56 @@ export class ElectoralProcess extends Contract {
 
         let idUint8Array = ctx.clientIdentity.getIDBytes();
         let crypto = new CryptoStuff();
-        let hash = crypto.sha256Hashing(idUint8Array.toString());
-        //let hash = this.createToken(ctx, position.electionNum, "vote");
+        let hash = await crypto.sha256Hashing(idUint8Array.toString());
 
-        if (requestHash != hash){
-            throw new Error(`The voter is not the same one who requested to vote. - \n${hash} \n${requestHash} \n${idUint8Array.toString()}`);
+        let requestedHash = await crypto.aesGcmDecrypt(requestSecuredHash);
+
+        if (requestedHash != hash){ // todo clean the error output
+            throw new Error(`The voter is not the same one who requested to vote. - \n${hash} \n${requestedHash} \n${idUint8Array.toString()}`);
         }
 
-        const assetAsBytes = await ctx.stub.getState(hash);        
+        const assetAsBytes = await ctx.stub.getState(hash);  
         if (assetAsBytes && assetAsBytes.length > 0) {
             throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
         }
         //checkToSubmitVote(ctx: Context)
+
+        let securedHashToVote = await crypto.aesGcmEncrypt(hash);
+
         const vote : Vote = {
             docType: 'vote',
-            voterHash: hash,
+            voterHash: securedHashToVote,
             candidateNumbers: candidateNumArray,
             electionNum: position.electionNum
         };
+
+        var encrypt = await crypto.aesGcmEncrypt(JSON.stringify(vote));
+
+        const encryptedVote : EncryptedVote = {
+            docType: 'encryptedVote',
+            encryptedVote: encrypt,
+            voterHash: hash
+        }
+
         const voteNum : string = hash;
-        await ctx.stub.putState(voteNum, Buffer.from(JSON.stringify(vote)));
+        await ctx.stub.putState(voteNum, Buffer.from(JSON.stringify(encryptedVote)));
         return voteNum + " created";
     }
 
-    private async submitVoteWithParcialResult(ctx: Context, candidateNumber:string){
-
+    private async submitVoteTallyResult(ctx: Context){
+        //getAllEncryptedVotes.
+        //ForEach them then create a vote.
+        
+        //await ctx.stub.putState(voteNum, Buffer.from(JSON.stringify(vote)));
     }
 
-    private async submitVoteWithTallyResult(ctx: Context, candidateNumber:string){
-
-    }
-
-    private async checkToSubmitVote(ctx: Context){
+    private async checkToSubmitVote(ctx: Context) : Promise<Boolean>{
         //Check if there is a vote under this election with the Voter Hash
         //Check voting period.
+        return false;
     }
 
-    private async checkToSubmitCandidacy(ctx: Context){
+    private async checkToSubmitCandidacy(ctx: Context) : Promise<Boolean>{
         //Check if there is a candidacy under this election with the same participant
         // {
         //     "selector": {
@@ -331,34 +342,29 @@ export class ElectoralProcess extends Contract {
         //  }
 
         //Check candidacy period.
-    }
-
-    private createToken(ctx: Context, electionNum: string, action: string) {
-        var fastSha256 = require("fast-sha256");
-        let idUint8Array = ctx.clientIdentity.getIDBytes();
-        let hash = "";
-
-        //#region String To UInt8Array
-        let electionKey = electionNum + "-" + action;
-        let buffer = new ArrayBuffer(electionKey.length);
-        let salt = new Uint8Array(buffer);
-        for (let i = 0; i < electionKey.length; i++) {
-            salt[i] = electionKey.charCodeAt(i);
-        }
-        //#endregion
-        try {
-            //let aaa = new HMAC(salt).digest();
-            let hashBytes = fastSha256.hkdf(idUint8Array, salt); //Salt seria a key da election em questão?            
-            hash = hashBytes.map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-        catch (err) {
-            throw new Error(err.message);
-        }
-        return hash;
+        return false;
     }
     
-    private async isPeriodoCandidatura(ctx: Context, election: Election){
-        // if (election.candidacy_period_initial < new Date())
+    private async isCandidacyTime(ctx: Context, election: Election) :  Promise<Boolean>{
+        if (election.candidacy_period_initial > new Date()){
+            return false;
+        }
+        if (election.candidacy_period_final < new Date()){
+            return false;
+        }
+
+        return true;
+    }
+
+    private async isVoteTime(ctx: Context, election: Election) :  Promise<Boolean>{
+        if (election.voting_period_initial > new Date()){
+            return false;
+        }
+        if (election.voting_period_final < new Date()){
+            return false;
+        }
+
+        return true;
     }
 
     //Justo to development quick
