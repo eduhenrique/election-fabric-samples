@@ -8,7 +8,7 @@ import { RequestContract } from './requestContract';
 export class SubmitVote{
     constructor() { }
     
-    async main(user: string, voterHash: string, candidateNumbers: string[]) {
+    async main(user: string, voterHash: string, candidateNumbers: string[], key: string) {
         try {
             let requestContract = new RequestContract()
             let [gateway, contract] = await requestContract.getContract(user);
@@ -18,7 +18,7 @@ export class SubmitVote{
             });
             concatenatedString = concatenatedString.substr(0,concatenatedString.length-2)
                         
-            const result0 = await contract.submitTransaction('submitVote', voterHash, concatenatedString);
+            const result0 = await contract.submitTransaction('submitVote', voterHash, concatenatedString, key);
             console.log(`Vote registered for ${candidateNumbers} - ${result0.toString()}\n`);
 
             // Disconnect from the gateway.

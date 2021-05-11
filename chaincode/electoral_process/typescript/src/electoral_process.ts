@@ -164,7 +164,7 @@ export class ElectoralProcess extends Contract {
     }
 
     //send mail to confirm access
-    public async requestCandidacy(ctx: Context, electionNum: string) {
+    public async requestCandidacy(ctx: Context, electionNum: string, key: string) {
         //verificar se já é um candidato.
         var participantKey = ctx.clientIdentity.getAttributeValue('cpf');
         const participantResult = await this.queryAsset(ctx, participantKey);
@@ -179,7 +179,7 @@ export class ElectoralProcess extends Contract {
         
         let idUint8Array = ctx.clientIdentity.getIDBytes();
         let crypto = new CryptoStuff();
-        let hash = await crypto.sha256Hashing(idUint8Array.toString());
+        let hash = await crypto.sha256Hashing(idUint8Array.toString(), key);
 
         const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
@@ -233,7 +233,7 @@ export class ElectoralProcess extends Contract {
     }
 
     //send mail to confirm access
-    public async requestVote(ctx: Context, electionNum: string) {
+    public async requestVote(ctx: Context, electionNum: string, key: string) {
         // a verificação sobre o eleitor acontece agora ou no momento do acesso? (register user)
         //hash for URL-safe base64-encoded 
         //verificar se periodo de votacao
@@ -250,14 +250,14 @@ export class ElectoralProcess extends Contract {
         
         let idUint8Array = ctx.clientIdentity.getIDBytes();
         let crypto = new CryptoStuff();
-        let hash = await crypto.sha256Hashing(idUint8Array.toString());
+        let hash = await crypto.sha256Hashing(idUint8Array.toString(), key);
 
         const assetAsBytes = await ctx.stub.getState(hash);        
         if (assetAsBytes && assetAsBytes.length > 0) {
             throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
         }
 
-        var securedHash = await crypto.aesGcmEncrypt(hash)
+        var securedHash = await crypto.aesGcmEncrypt(hash, key)
 
         new SendEmail(            
             participant.email,
@@ -269,7 +269,7 @@ export class ElectoralProcess extends Contract {
     /* back from email, the front end page should be returned and then, on the click of the form,
     * this function could be called to finally put the state of the vote.
     */ 
-   public async submitVote(ctx: Context, requestSecuredHash: string, candidateNumbers: string) {        
+   public async submitVote(ctx: Context, requestSecuredHash: string, candidateNumbers: string, key: string) {
         //#region Get Position from candidate
         let candidateNumArray = candidateNumbers.split(',');
          const candidateResult = await this.queryAsset(ctx, candidateNumArray[0]);
@@ -282,9 +282,10 @@ export class ElectoralProcess extends Contract {
 
         let idUint8Array = ctx.clientIdentity.getIDBytes();
         let crypto = new CryptoStuff();
-        let hash = await crypto.sha256Hashing(idUint8Array.toString());
+        let hash = await crypto.sha256Hashing(idUint8Array.toString(), key);
 
-        let requestedHash = await crypto.aesGcmDecrypt(requestSecuredHash);
+        // one level ahead of encrypt, gonna undo this?
+        let requestedHash = await crypto.aesGcmDecrypt(requestSecuredHash, key);
 
         if (requestedHash != hash){ // todo clean the error output
             throw new Error(`The voter is not the same one who requested to vote. - \n${hash} \n${requestedHash} \n${idUint8Array.toString()}`);
@@ -296,7 +297,7 @@ export class ElectoralProcess extends Contract {
         }
         //checkToSubmitVote(ctx: Context)
 
-        let securedHashToVote = await crypto.aesGcmEncrypt(hash);
+        let securedHashToVote = await crypto.aesGcmEncrypt(hash, key);
 
         const vote : Vote = {
             docType: 'vote',
@@ -305,7 +306,7 @@ export class ElectoralProcess extends Contract {
             electionNum: position.electionNum
         };
 
-        var encrypt = await crypto.aesGcmEncrypt(JSON.stringify(vote));
+        var encrypt = await crypto.aesGcmEncrypt(JSON.stringify(vote), key);
 
         const encryptedVote : EncryptedVote = {
             docType: 'encryptedVote',

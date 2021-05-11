@@ -1,25 +1,16 @@
-import { Wallets } from 'fabric-network';
 
 export class CryptoStuff{    
     private cryptoImported = require('crypto');
-    private walletPath = '';
 
     public constructor()
     {
       require('dotenv').config();
-      this.walletPath = process.env.WALLET_PATH;      
     }
 
-    public async aesGcmEncrypt(str : string)
+    public async aesGcmEncrypt(str : string, key: string)
     {
-      let pw = await this.getEncryptionKey();
-      console.log('\npw',pw);
-      let key = this.cryptoImported.scryptSync(pw, 'blockchain', 32);
-      console.log('\nkey',key);
       let iv = this.cryptoImported.randomBytes(12);
-      console.log('before');
       const cipher = this.cryptoImported.createCipheriv('aes-256-gcm', key, iv);
-      console.log('After');
 
       let enc = cipher.update(str, 'binary', 'hex');
       enc += cipher.final('hex');
@@ -30,7 +21,7 @@ export class CryptoStuff{
       return enc;
     }
 
-    public async aesGcmDecrypt(encrypted : any)
+    public async aesGcmDecrypt(encrypted : any, key: string)
     {
       let fullString = encrypted;
       let tag = fullString.slice(fullString.length - 32, fullString.length);
@@ -39,8 +30,6 @@ export class CryptoStuff{
               
       let iv = Buffer.from(nonce,'hex');
       let authTag = Buffer.from(tag,'hex');
-      let pw = await this.getEncryptionKey();
-      let key = this.cryptoImported.scryptSync(pw, 'blockchain', 32);
 
       const decipher = this.cryptoImported.createDecipheriv('aes-256-gcm', key, iv);
       decipher.setAuthTag(authTag);
@@ -48,12 +37,15 @@ export class CryptoStuff{
       str += decipher.final('binary');
       console.log('decrypt', str);
       return str;
-    }   
+    }
+    
+    public async createAESKeybyPassword(password : string) : Promise<string>{
+      let key = this.cryptoImported.scryptSync(password, 'blockchain', 32);
+      return key;
+    }
 
-    public async sha256Hashing(text : string)
-    {
-      let key = await this.getEncryptionKey();
-      console.log('key', key)
+    public async sha256Hashing(text : string, key: string)
+    {      
       var plaintext = this.cryptoImported.createHmac("sha256", key)
       .update(text)
       var hash = this.hex(plaintext);
@@ -64,24 +56,6 @@ export class CryptoStuff{
       const hash = text.digest("hex");
       console.log("  HMAC-HEX", hash + "\n");
       return hash;
-    }
-
-    private async getEncryptionKey(){
-      const wallet = await Wallets.newFileSystemWallet(this.walletPath);
-      //console.log('process.cwd()' , process.cwd());
-      //console.log('wallet env path', this.walletPath);
-      const adminIdentity = await wallet.get('admin');
-      if (!adminIdentity) {
-          console.log('An identity for the admin user "admin" does not exist in the wallet');
-          console.log('Run the enrollAdmin.ts application before retrying');
-          return;
-      }
-      const provider = wallet.getProviderRegistry().getProvider(adminIdentity.type);
-      const adminUser = await provider.getUserContext(adminIdentity, 'admin');      
-      //console.log('Degub is on the table', adminUser.getSigningIdentity()['_signer']['_key']);
-      //console.log('getSigningIdentity from adminuser', adminUser.getSigningIdentity()['_signer']['_key']['_key']['prvKeyHex']);
-      var pk = adminUser.getSigningIdentity()['_signer']['_key']['_key']['prvKeyHex'];      
-      return pk;
     }
 
     public async testing(){
@@ -104,12 +78,14 @@ export class CryptoStuff{
           },
         ]
       };
+
+      let keyTest = await this.createAESKeybyPassword('hmmmmTeste');
       console.log('\n sha256');
-      await this.sha256Hashing(JSON.stringify(voteTest));
+      await this.sha256Hashing(JSON.stringify(voteTest), keyTest);
       console.log('\n AES ENC');
-      const aesEncrypt = await this.aesGcmEncrypt(JSON.stringify(voteTest));
+      const aesEncrypt = await this.aesGcmEncrypt(JSON.stringify(voteTest), keyTest);
       console.log('\n AES DEC');
-      const decrypted = await this.aesGcmDecrypt(aesEncrypt);
+      const decrypted = await this.aesGcmDecrypt(aesEncrypt, keyTest);
     } 
 }
 
