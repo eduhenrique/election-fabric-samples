@@ -27,9 +27,7 @@ export class AccessPrivateKey{
         var pk = adminUser.getSigningIdentity()['_signer']['_key']['_key']['prvKeyHex'];      
         
         console.log('\nprivateKey', pk);
-        let key = await new CryptoStuff().createAESKeybyPassword(pk);
-        console.log('\nkey', key);
-        return key;
+        return pk;
       }
 
 }

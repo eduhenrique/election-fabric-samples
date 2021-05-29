@@ -17,7 +17,7 @@ export class SubmitVote{
                 concatenatedString += key + ', '
             });
             concatenatedString = concatenatedString.substr(0,concatenatedString.length-2)
-                        
+
             const result0 = await contract.submitTransaction('submitVote', voterHash, concatenatedString, key);
             console.log(`Vote registered for ${candidateNumbers} - ${result0.toString()}\n`);
 

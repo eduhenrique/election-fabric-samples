@@ -9,15 +9,15 @@ export class CryptoStuff{
 
   public async aesGcmEncrypt(str : string, key: string)
   {
+    let aesKey = await this.createAESKeybyPassword(key);
     let iv = this.cryptoImported.randomBytes(12);
-    const cipher = this.cryptoImported.createCipheriv('aes-256-gcm', key, iv);
+    const cipher = this.cryptoImported.createCipheriv('aes-256-gcm', aesKey, iv);
 
-    let enc = cipher.update(str, 'binary', 'hex');
+    var enc = cipher.update(str, 'binary', 'hex');
     enc += cipher.final('hex');
     enc += iv.toString('hex');
     enc += cipher.getAuthTag().toString('hex');
 
-    console.log('\n encrypt', enc);
     return enc;
   }
 
@@ -31,11 +31,12 @@ export class CryptoStuff{
     let iv = Buffer.from(nonce,'hex');
     let authTag = Buffer.from(tag,'hex');
 
-    const decipher = this.cryptoImported.createDecipheriv('aes-256-gcm', key, iv);
+    let aesKey = await this.createAESKeybyPassword(key);
+    const decipher = this.cryptoImported.createDecipheriv('aes-256-gcm', aesKey, iv);
     decipher.setAuthTag(authTag);
     let str = decipher.update(encryptedData, 'hex', 'binary');
     str += decipher.final('binary');
-    console.log('decrypt', str);
+
     return str;
   }
   
@@ -45,10 +46,11 @@ export class CryptoStuff{
   }
 
   public async sha256Hashing(text : string, key: string)
-  {      
-    var plaintext = this.cryptoImported.createHmac("sha256", key)
+  {
+    let hmacKey = Buffer.from(key);
+    var plaintext = this.cryptoImported.createHmac("sha256", hmacKey)
     .update(text)
-    var hash = this.hex(plaintext);
+    var hash = await this.hex(plaintext);
     return hash;
   }
 
@@ -79,14 +81,14 @@ export class CryptoStuff{
       ]
     };
 
-    let keyTest = await this.createAESKeybyPassword('hmmmmTeste');
+    let keyTest = 'AEIOUTESTE'
     console.log('\n sha256');
     await this.sha256Hashing(JSON.stringify(voteTest), keyTest);
     console.log('\n AES ENC');
     const aesEncrypt = await this.aesGcmEncrypt(JSON.stringify(voteTest), keyTest);
     console.log('\n AES DEC');
     const decrypted = await this.aesGcmDecrypt(aesEncrypt, keyTest);
-  } 
+  }
 }
 
-//new CryptoStuff().testing();
+ //new CryptoStuff().testing();
