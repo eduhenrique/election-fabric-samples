@@ -289,52 +289,31 @@ export class ElectoralProcess extends Contract {
         }
 
         await this.checkToSubmitVote(ctx, hash)
-
-        // var securedHashToVote = await crypto.aesGcmEncrypt(hash, key);
-        var securedHashToVote = await this.encrypt(hash, key);
-        const voterHash : string =  securedHashToVote; //deep clone? Object.assign({}, securedHashToVote); ||  { ... securedHashToVote }
+        
+        var voterHash = await crypto.aesGcmEncrypt(hash, key, Buffer.from('5BD465AEBA61'));        
         
         const vote : Vote = {
             docType: 'vote',
             candidateNumbers: candidateNumArray,
             electionNum: position.electionNum,
-            voterHash: securedHashToVote
+            voterHash
         };
 
-        // var encrypt = await crypto.aesGcmEncrypt(JSON.stringify(vote), key);
+        var encrypt = await crypto.aesGcmEncrypt(JSON.stringify(vote), key, Buffer.from('5BD465AEBA61'));
 
-        // const encryptedVote : EncryptedVote = {
-        //     docType: 'encryptedVote',
-        //     encryptedVote: encrypt,
-        //     voterHash: hash
-        // }
+        const encryptedVote : EncryptedVote = {
+            docType: 'encryptedVote',
+            encryptedVote: encrypt,
+            voterHash: hash // remove voterHash? since the value intend to be the same from the key value.
+        }
 
-        var buffer = Buffer.from(JSON.stringify(vote));
-        // if (key){ // todo clean the error output
-        //     throw new Error(`Interesting - \n${JSON.stringify(vote)} \n${buffer} \n${securedHashToVote.toString()}`);
-        // }
-        const voteNum : string = hash;
+        var buffer = Buffer.from(JSON.stringify(encryptedVote));
+
         await ctx.stub.putState(hash, buffer);
         console.info('============= END : Create Vote ===========');
-        // return voteNum + " created";
+        return hash + " created";
     }
-
-    public async encrypt(str : string, key: string) : Promise<string>
-    {
-        const cryptoImported = await require('crypto');
-
-        let aesKey = cryptoImported.scryptSync(key, 'blockchain', 32);
-        let iv = cryptoImported.randomBytes(12);
-        const cipher = cryptoImported.createCipheriv('aes-256-gcm', aesKey, iv);
-
-        var enc = cipher.update(str, 'binary', 'hex');
-        enc += cipher.final('hex');
-        enc += iv.toString('hex');
-        enc += cipher.getAuthTag().toString('hex');
-
-        return enc;
-    }
-
+    
     private async submitVoteTallyResult(ctx: Context){
         //getAllEncryptedVotes.
         //ForEach them then create a vote.

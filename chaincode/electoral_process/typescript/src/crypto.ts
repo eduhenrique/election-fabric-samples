@@ -7,10 +7,14 @@ export class CryptoStuff{
     require('dotenv').config();
   }
 
-  public async aesGcmEncrypt(str : string, key: string)
+  public async aesGcmEncrypt(str : string, key: string, iv: Buffer = null)
   {
     let aesKey = await this.createAESKeybyPassword(key);
-    let iv = this.cryptoImported.randomBytes(12);
+
+    if (!iv){
+      iv = this.cryptoImported.randomBytes(12);
+    }
+
     const cipher = this.cryptoImported.createCipheriv('aes-256-gcm', aesKey, iv);
 
     var enc = cipher.update(str, 'binary', 'hex');
