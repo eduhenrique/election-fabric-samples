@@ -108,11 +108,23 @@ export class ElectoralProcess extends Contract {
         return queryResults;        
     }
 
-    public async queryAllPositionsByElection(ctx: Context, electionNum: string): Promise<string>{
-        //Promise<ChaincodeResponse
-        // var electionNum:string = args[0].toLowerCase()
-    
+    public async queryAllPositionsByElection(ctx: Context, electionNum: string): Promise<string>{    
         var queryString = "{\"selector\":{\"docType\":\"position\",\"electionNum\":\"" + electionNum +"\"}}";
+    
+        try {
+            var queryResults = this.getQueryResultForQueryString(ctx, queryString);
+        } catch (err) {
+            console.log(err);
+            var resultErr =  Shim.error(err.Error());
+            return "Message Err - " + resultErr.message + "  Payload - " + resultErr.payload.toString()
+        }
+
+        console.info(queryResults);
+        return queryResults;
+    }
+
+    public async queryEncryptedVotesByElection(ctx: Context, electionNum: string): Promise<string>{    
+        var queryString = "{\"selector\":{\"docType\":\"encryptedVote\",\"electionNum\":\"" + electionNum +"\"}}";
     
         try {
             var queryResults = this.getQueryResultForQueryString(ctx, queryString);
@@ -269,12 +281,12 @@ export class ElectoralProcess extends Contract {
    public async submitVote(ctx: Context, requestSecuredHash: string, candidateNumbers: string, key: string) {
         //#region Get Position from candidate
         let candidateNumArray = candidateNumbers.split(',');
-         const candidateResult = await this.queryAsset(ctx, candidateNumArray[0]);
-         const candidate : Candidate = JSON.parse(candidateResult);
-         //double check if there is a candidate for each existed position
-        
-         const positionResult = await this.queryAsset(ctx, candidate.positionNum);
-         const position : Position = JSON.parse(positionResult);
+        const candidateResult = await this.queryAsset(ctx, candidateNumArray[0]);
+        const candidate : Candidate = JSON.parse(candidateResult);
+        //double check if there is a candidate for each existed position
+    
+        const positionResult = await this.queryAsset(ctx, candidate.positionNum);
+        const position : Position = JSON.parse(positionResult);
         //#endregion
 
         let idUint8Array = ctx.clientIdentity.getIDBytes();
@@ -303,8 +315,8 @@ export class ElectoralProcess extends Contract {
 
         const encryptedVote : EncryptedVote = {
             docType: 'encryptedVote',
-            encryptedVote: encrypt,
-            voterHash: hash // remove voterHash? since the value intend to be the same from the key value.
+            encryptedVoteHash: encrypt,
+            electionNum: position.electionNum
         }
 
         var buffer = Buffer.from(JSON.stringify(encryptedVote));
@@ -313,12 +325,21 @@ export class ElectoralProcess extends Contract {
         console.info('============= END : Create Vote ===========');
         return hash + " created";
     }
+
+    public async verifyVote(ctx: Context, requestSecuredHash: string) {
+
+    }
     
-    private async submitVoteTallyResult(ctx: Context){
-        //getAllEncryptedVotes.
-        //ForEach them then create a vote.
-        
-        //await ctx.stub.putState(voteNum, Buffer.from(JSON.stringify(vote)));
+    public async submitVoteTallyResult(ctx: Context, electionNum: string, key: string){        
+        const jsonEncryptedVoteList = await this.queryEncryptedVotesByElection(ctx, electionNum);
+        const encryptedVoteList : Array<EncryptedVote> = JSON.parse(jsonEncryptedVoteList);
+        let crypto = new CryptoStuff();
+
+        encryptedVoteList.forEach(async encryptedVote => {
+            var rawVote = await crypto.aesGcmDecrypt(encryptedVote.encryptedVoteHash, key);
+            var vote : Vote = JSON.parse(rawVote);
+            await ctx.stub.putState(vote.voterHash, rawVote);
+        });
     }
 
     private async checkToSubmitVote(ctx: Context, hash: string) : Promise<Boolean>{
