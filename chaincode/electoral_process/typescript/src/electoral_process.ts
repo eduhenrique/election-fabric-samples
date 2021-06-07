@@ -332,14 +332,29 @@ export class ElectoralProcess extends Contract {
     
     public async submitVoteTallyResult(ctx: Context, electionNum: string, key: string){        
         const jsonEncryptedVoteList = await this.queryEncryptedVotesByElection(ctx, electionNum);
-        const encryptedVoteList : Array<EncryptedVote> = JSON.parse(jsonEncryptedVoteList);
-        let crypto = new CryptoStuff();
+        const encryptedVoteMap : Map<string,EncryptedVote> = JSON.parse(jsonEncryptedVoteList);
 
-        encryptedVoteList.forEach(async encryptedVote => {
-            var rawVote = await crypto.aesGcmDecrypt(encryptedVote.encryptedVoteHash, key);
-            var vote : Vote = JSON.parse(rawVote);
-            await ctx.stub.putState(vote.voterHash, rawVote);
+        let crypto = new CryptoStuff();
+        let aa = 'complete ';
+        let count : number = 0;
+        let voteArray: Array<Vote> = new Array<Vote>();
+
+        encryptedVoteMap.forEach(async value => {
+            let encryptedVote : EncryptedVote =  value['Record'];
+            //let rawVote = await crypto.aesGcmDecrypt(encryptedVote.encryptedVoteHash, key);            
+            aa += '\n'+JSON.stringify(encryptedVote) + ' ';
+            count++;
+            // let vote: Vote = rawVote;
+            // voteArray.push(vote);
+            // await ctx.stub.putState(vote.voterHash, rawVote);
         });
+
+        // voteArray.forEach(async vote => {
+        //     aa += ' \n ' + JSON.stringify(vote);
+        //     await ctx.stub.putState(vote.voterHash, Buffer.from(vote)); 
+        // });
+
+        return aa + count;
     }
 
     private async checkToSubmitVote(ctx: Context, hash: string) : Promise<Boolean>{
