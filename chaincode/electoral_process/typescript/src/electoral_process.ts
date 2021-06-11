@@ -15,6 +15,7 @@ import { CryptoStuff } from './crypto';
 import { throws } from 'assert';
 import { exception } from 'console';
 import { EncryptedVote } from './models/encryptedVote';
+import { Votes } from './models/votes';
 
 
 export class ElectoralProcess extends Contract {
@@ -332,30 +333,57 @@ export class ElectoralProcess extends Contract {
     
     public async submitVoteTallyResult(ctx: Context, electionNum: string, key: string){        
         const jsonEncryptedVoteList = await this.queryEncryptedVotesByElection(ctx, electionNum);
-        const encryptedVoteMap : Map<string,EncryptedVote> = JSON.parse(jsonEncryptedVoteList);
+        
+        const encryptedVoteMap = JSON.parse(jsonEncryptedVoteList);
+        
+        if (!encryptedVoteMap || !encryptedVoteMap.values){
+            throw new Error(`There is no encrypted vote registered.`);
+        }
+        
+        let voteList = await this.createVoteByEncryptedVote(ctx, encryptedVoteMap, key);
+        
+        if (voteList.length < 0){
+            throw new Error(`There is no vote to be registered.`);
+        }
 
+        const votes : Votes = {
+            docType: 'votes',
+            votes: voteList,
+            electionNum: voteList[0].electionNum
+        }
+
+        var hash: string = 'voteList_' + votes.electionNum;
+        await ctx.stub.putState(hash, Buffer.from(JSON.stringify(votes)));
+        return JSON.stringify(votes) + ' \nVoteList \n' + JSON.stringify(voteList) + '\n length '+ voteList.length;
+    }
+
+    private async createVoteByEncryptedVote(ctx:Context, encryptedVoteMap: any, key: string): Promise<Array<Vote>>{
+        var voteList: Array<Vote> = new Array();
         let crypto = new CryptoStuff();
-        let aa = 'complete ';
-        let count : number = 0;
-        let voteArray: Array<Vote> = new Array<Vote>();
 
-        encryptedVoteMap.forEach(async value => {
-            let encryptedVote : EncryptedVote =  value['Record'];
-            //let rawVote = await crypto.aesGcmDecrypt(encryptedVote.encryptedVoteHash, key);            
-            aa += '\n'+JSON.stringify(encryptedVote) + ' ';
-            count++;
-            // let vote: Vote = rawVote;
-            // voteArray.push(vote);
-            // await ctx.stub.putState(vote.voterHash, rawVote);
+        await encryptedVoteMap.forEach(async value => {
+            let encryptedVote =  value['Record'];
+            let rawVote = await crypto.aesGcmDecrypt(encryptedVote.encryptedVoteHash, key);
+            let vote = JSON.parse(rawVote);
+            voteList.push(vote);            
         });
 
-        // voteArray.forEach(async vote => {
-        //     aa += ' \n ' + JSON.stringify(vote);
-        //     await ctx.stub.putState(vote.voterHash, Buffer.from(vote)); 
-        // });
-
-        return aa + count;
+        return voteList;
     }
+    // private startToSaveVoteOnLedger(ctx: Context, voteList: Array<Vote>){
+    //     var qtd = 0;
+    //     for (var i: number; i < voteList.length; i++ ){
+    //         //this.saveVoteOnLedger(ctx, voteList[i]);
+    //         ctx.stub.putState(voteList[i].voterHash, Buffer.from(JSON.stringify(voteList[i])));
+    //         qtd = i;
+    //     }
+    //     return qtd;
+    // }
+
+    // private async saveVoteOnLedger(ctx: Context, vote: Vote){
+    //     await ctx.stub.putState(vote.voterHash, Buffer.from(vote));
+    //     return true;
+    // }
 
     private async checkToSubmitVote(ctx: Context, hash: string) : Promise<Boolean>{
         const assetAsBytes = await ctx.stub.getState(hash); // check if there is any encryptedVote with same hash.
