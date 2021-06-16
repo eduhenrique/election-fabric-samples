@@ -15,8 +15,7 @@ export class RequestIdentity{
 
             // Evaluate the specified transaction.
             const result = await contract.evaluateTransaction('IdFromUserRequesting');            
-            console.log(`Transaction has been evaluated, result is: ${result.toString()}`);
-            
+                        
             gateway.disconnect();
 
             return result.toString();

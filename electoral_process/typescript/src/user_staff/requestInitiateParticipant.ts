@@ -18,6 +18,13 @@ async function main(){
     alibaba.email = 'edu@edu.edu';
 
     await initiateParticipant.initiateParticipant('appUser', alibaba);
+
+    let uber = new Participant();
+    uber.cpf = '12300032110';
+    uber.dname = 'Uber';
+    uber.email = 'edu@edu.edu';
+
+    await initiateParticipant.initiateParticipant('appUser', uber);
 }
 
 main();

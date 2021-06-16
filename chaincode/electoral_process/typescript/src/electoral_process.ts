@@ -265,9 +265,12 @@ export class ElectoralProcess extends Contract {
         let crypto = new CryptoStuff();
         let hash = await crypto.sha256Hashing(idUint8Array.toString(), key);
 
-        await this.checkToSubmitVote(ctx, hash)
+        let isAValidVoter = await this.checkToSubmitVote(ctx, hash, electionNum, key);
+        // if (!isAValidVoter){
+        //     throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
+        // }
 
-        var securedHash = await crypto.aesGcmEncrypt(hash, key)
+        var securedHash = await crypto.aesGcmEncrypt(hash, key);
 
         new SendEmail(            
             participant.email,
@@ -301,9 +304,12 @@ export class ElectoralProcess extends Contract {
             throw new Error(`The voter is not the same one who requested to vote. - \n${hash} \n${requestedHash} \n${idUint8Array.toString()}`);
         }
 
-        await this.checkToSubmitVote(ctx, hash)
+        let isAValidVoter = await this.checkToSubmitVote(ctx, hash, position.electionNum, key);
+        // if (!isAValidVoter){
+        //     throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
+        // }
         
-        var voterHash = await crypto.aesGcmEncrypt(hash, key, Buffer.from('5BD465AEBA61'));        
+        var voterHash = await crypto.aesGcmEncrypt(hash, key, Buffer.from('5BD465AEBA61')); // need to be a fix IV due the endorsement check.
         
         const vote : Vote = {
             docType: 'vote',
@@ -327,24 +333,37 @@ export class ElectoralProcess extends Contract {
         return hash + " created";
     }
 
-    public async verifyVote(ctx: Context, requestSecuredHash: string) {
+    public async electionIndividualVerifiability(ctx: Context, electionNum: string, requestSecuredHash: string, key: string) {
+        // let voteList = await this.getVoteListFromEncryptedVotes(ctx, electionNum, key);
+        let rawsecuredHash = await new CryptoStuff().aesGcmDecrypt(requestSecuredHash, key);
 
-    }
-    
-    public async submitVoteTallyResult(ctx: Context, electionNum: string, key: string){        
-        const jsonEncryptedVoteList = await this.queryEncryptedVotesByElection(ctx, electionNum);
-        
+        const jsonEncryptedVoteList = await this.queryEncryptedVotesByElection(ctx, electionNum);        
         const encryptedVoteMap = JSON.parse(jsonEncryptedVoteList);
         
-        if (!encryptedVoteMap || !encryptedVoteMap.values){
+        if (!encryptedVoteMap?.values){
             throw new Error(`There is no encrypted vote registered.`);
         }
         
-        let voteList = await this.createVoteByEncryptedVote(ctx, encryptedVoteMap, key);
+        let crypto = new CryptoStuff();
+        let encryptedVoteMatched : EncryptedVote;
+        let qtd : number = 0;
+
+        await encryptedVoteMap.forEach(async value => {
+            let encryptedVote =  value['Record'];
+            let rawVote = await crypto.aesGcmDecrypt(encryptedVote.encryptedVoteHash, key);
+            let vote: Vote = JSON.parse(rawVote);
+            if (rawsecuredHash == vote.voterHash){
+                encryptedVoteMatched = value;
+            }
+            qtd++;
+        });
+        //not working
         
-        if (voteList.length < 0){
-            throw new Error(`There is no vote to be registered.`);
-        }
+        return encryptedVoteMatched + ' qtd' + qtd;
+    }
+    
+    public async submitVoteTallyResult(ctx: Context, electionNum: string, key: string){        
+        let voteList = await this.getVoteListFromEncryptedVotes(ctx, electionNum, key);
 
         const votes : Votes = {
             docType: 'votes',
@@ -357,7 +376,24 @@ export class ElectoralProcess extends Contract {
         return JSON.stringify(votes) + ' \nVoteList \n' + JSON.stringify(voteList) + '\n length '+ voteList.length;
     }
 
-    private async createVoteByEncryptedVote(ctx:Context, encryptedVoteMap: any, key: string): Promise<Array<Vote>>{
+    private async getVoteListFromEncryptedVotes(ctx: Context, electionNum: string, key: string):Promise<Array<Vote>>{
+        const jsonEncryptedVoteList = await this.queryEncryptedVotesByElection(ctx, electionNum);        
+        const encryptedVoteMap = JSON.parse(jsonEncryptedVoteList);
+        
+        if (!encryptedVoteMap?.values){
+            throw new Error(`There is no encrypted vote registered.`);
+        }
+        
+        let voteList = await this.createVoteListFromEncryptedVotes(encryptedVoteMap, key);
+        
+        if (voteList.length < 0){
+            throw new Error(`There is no vote to be registered.`);
+        }
+
+        return voteList;
+    }
+
+    private async createVoteListFromEncryptedVotes(encryptedVoteMap: any, key: string): Promise<Array<Vote>>{
         var voteList: Array<Vote> = new Array();
         let crypto = new CryptoStuff();
 
@@ -365,29 +401,24 @@ export class ElectoralProcess extends Contract {
             let encryptedVote =  value['Record'];
             let rawVote = await crypto.aesGcmDecrypt(encryptedVote.encryptedVoteHash, key);
             let vote = JSON.parse(rawVote);
-            voteList.push(vote);            
+            voteList.push(vote);
         });
 
         return voteList;
     }
-    // private startToSaveVoteOnLedger(ctx: Context, voteList: Array<Vote>){
-    //     var qtd = 0;
-    //     for (var i: number; i < voteList.length; i++ ){
-    //         //this.saveVoteOnLedger(ctx, voteList[i]);
-    //         ctx.stub.putState(voteList[i].voterHash, Buffer.from(JSON.stringify(voteList[i])));
-    //         qtd = i;
-    //     }
-    //     return qtd;
-    // }
 
-    // private async saveVoteOnLedger(ctx: Context, vote: Vote){
-    //     await ctx.stub.putState(vote.voterHash, Buffer.from(vote));
-    //     return true;
-    // }
+    private async checkToSubmitVote(ctx: Context, hash: string, electionNum: string, key: string) : Promise<Boolean>{
+        let voteList = await this.getVoteListFromEncryptedVotes(ctx, electionNum, key);
+        let existVote = false;
 
-    private async checkToSubmitVote(ctx: Context, hash: string) : Promise<Boolean>{
-        const assetAsBytes = await ctx.stub.getState(hash); // check if there is any encryptedVote with same hash.
-        if (assetAsBytes && assetAsBytes.length > 0) {
+        //not working
+        voteList.forEach(vote =>{
+            if (hash == vote['voterHash']){
+                existVote = true;
+            }
+        })
+
+        if (existVote){
             throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
         }
         //Check voting period.
