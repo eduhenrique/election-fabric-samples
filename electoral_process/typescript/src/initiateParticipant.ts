@@ -6,7 +6,7 @@ import { Contract } from 'fabric-network';
 import { CreateUserParticipant } from './registerUserWithAttr';
 import { RequestContract } from './requestContract';
 
-export class Participant{ cpf: string; dname: string; email: string }
+export class Participant{ cpf: string; name: string; email: string }
 
 export class InitiateParticipant{
     constructor() { }
@@ -16,14 +16,14 @@ export class InitiateParticipant{
             let requestContract = new RequestContract()
             let [gateway, contract] = await requestContract.getContract(user);
 
-            await CreateParticipant.create(contract, participant.cpf, participant.dname, participant.email);
+            await CreateParticipant.create(contract, participant.cpf, participant.name, participant.email);
             await CreateUserParticipant.create(participant.cpf, participant.cpf);
             
             gateway.disconnect();
             
         } catch (error) {
             console.error(`Failed to InitiateParticipant: ${error}`);
-            process.exit(1);
+            throw error;
         }
     }   
 }
@@ -42,7 +42,7 @@ export class CreateParticipant{
     
         } catch (error) {
             console.error(`Failed to submit transaction - CreateParticipante: ${error}`);
-            process.exit(1);
+            throw error;
         }
     }
 }

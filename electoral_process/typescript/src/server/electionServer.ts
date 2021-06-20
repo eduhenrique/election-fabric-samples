@@ -1,21 +1,67 @@
-var express = require('express');
-var bodyParser = require('body-parser');
-
-var app = express();
+require('dotenv').config();
+const express = require('express');
+const bodyParser = require('body-parser');
+const swaggerJsDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+const app = express();
 app.use(bodyParser.json());
+
+const swaggerOptions = {
+    swaggerDefinition: {
+      info: {
+        version: "1.0.0",
+        title: "Blockchain Election API",
+        description: "Blockchain Election API Information",
+        contact: {
+          name: "Amazing Developer"
+        },
+        servers: ["http://localhost:5000"]
+      }
+    },
+    // ['.routes/*.js']
+    apis: ["dist/server/electionServer.js"]
+  };
+  
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
 
 // Setting for Hyperledger Fabric
 const { Wallets, FileSystemWallet, Gateway } = require('fabric-network');
 const path = require('path');
 const fs = require('fs');
-const walletPath = path.resolve(__dirname,'..','..','wallet');
+const walletPath = process.env.WALLET_PATH;
 
 // load the network configuration
-const ccpPath = path.resolve(__dirname, '..', '..', '..', '..','test-network','organizations','peerOrganizations','org1.example.com', 'connection-org1.json');
+const ccpPath = process.env.CONFIGURATION_PATH;
+// const ccpPath = path.resolve(__dirname, '..', '..', '..', '..','test-network','organizations','peerOrganizations','org1.example.com', 'connection-org1.json');
 const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
 
+// Routes
 
-app.get('/api/queryAllElections', async function (req, res) {
+/**
+ * @swagger
+ * /example:
+ *  get:
+ *    description: Use to request all customers
+ *    responses:
+ *      '200':
+ *        description: A successful response
+ */
+app.get("/example", (req, res) => {
+    res.status(200).send("Customer results");
+  });
+
+/**
+ * @swagger
+ * /elections:
+ *  get:
+ *    description: Use to request all elections
+ *    responses:
+ *      '200':
+ *        description: A successful response
+ */
+app.get('/elections', async (req, res) => {
     try {
         // Create a new file system based wallet for managing identities.        
         const wallet = await Wallets.newFileSystemWallet(walletPath);
@@ -45,7 +91,7 @@ app.get('/api/queryAllElections', async function (req, res) {
         // Evaluate the specified transaction.
         // const result = await contract.evaluateTransaction('queryAllProducts');
         // console.log(`Transaction has been evaluated, result is: ${result.toString()}`);
-        res.status(200).json({response: result.toString()});
+        res.status(200).json(JSON.parse(result.toString()));
 
     } catch (error) {
         console.error(`Failed to evaluate transaction: ${error}`);
@@ -92,11 +138,55 @@ app.get('/api/queryParticipant', async function (req, res) {
     }
 });
 
-app.post('/api/addParticipant/', async function (req, res) {
+/**
+ * @swagger
+ * definitions:
+ *   Participant:
+ *     properties:
+ *       cpf:
+ *          type: string
+ *       name:
+ *          type: string
+ *       email:
+ *          type: string
+ */
+
+/**
+ * @swagger
+ * /participant:
+ *   post:
+ *     tags:
+ *       - Participant
+ *     description: Creates a new participant
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: cpf
+ *         description: cpf information
+ *         in: query
+ *         required: true
+ *         schema:
+ *              type: string
+ *       - name: name
+ *         description: name information
+ *         in: query
+ *         required: true
+ *         schema:
+ *              type: string
+ *       - name: email
+ *         description: email information
+ *         in: query
+ *         required: true
+ *         schema:
+ *              type: string
+ *     responses:
+ *       200:
+ *         description: Successfully created
+ */
+app.post('/participant/', async function (req, res) {
     try {
 
-        var createParticipant = require('../createParticipant');
-        var registerUser = require('../registerUserWithAttr');
+        let initiateParticipant = require('../initiateParticipant');        
 
         // Create a new file system based wallet for managing identities.        
         const wallet = await Wallets.newFileSystemWallet(walletPath);
@@ -113,29 +203,31 @@ app.post('/api/addParticipant/', async function (req, res) {
         // Create a new gateway for connecting to our peer node.
         const gateway = new Gateway();        
         await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: true } });
-
-        // Get the network (channel) our contract is deployed to.
-        const network = await gateway.getNetwork('mychannel');
-
-        // Get the contract from the network.
-        const contract = network.getContract('electoral_process');
+                
+        console.log(JSON.stringify(req.query) +'\n');
+        console.log(JSON.stringify(req.query.cpf) +'\n');
+        console.log(JSON.stringify(req.query.name) +'\n');
+        console.log(JSON.stringify(req.query.email) +'\n');
         
-        let cpf: string = req.query.cpf;
-        let name: string = req.query.name;
-        let email: string = req.query.email;
+        let hercules = {
+            cpf: req.query.cpf,
+            name: req.query.name,
+            email: req.query.email
+        };
 
-        await createParticipant.CreateParticipant.create(contract, cpf, name, email);
-        // let walletName = name.substr(0,3) + new Date().valueOf()
-        await registerUser.CreateUserParticipant.create(cpf, cpf);        
+        console.log('Hercules' + JSON.stringify(hercules) +'\n');
+
+        await new initiateParticipant.InitiateParticipant().initiateParticipant('appUser', hercules);
+
         console.log(`Participant has been created`);
-        res.send('Transaction has been submitted');
+        res.send('Participant has been created');
 
         // Disconnect from the gateway.
         await gateway.disconnect();
 
     } catch (error) {
         console.error(`Failed to submit transaction: ${error}`);
-        process.exit(1);
+        res.status(500).send('Something broke!\n' + error);
     }
 });
 
@@ -380,5 +472,5 @@ app.get('/api/getElectionForm', async function (req, res) {
 //     }	
 // })
 
-app.listen(8080, 'localhost');
-console.log('Running on http://localhost:8080');
+app.listen(5000, 'localhost');
+console.log('Running on http://localhost:5000');
