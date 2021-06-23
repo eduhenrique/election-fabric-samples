@@ -199,17 +199,24 @@ export class ElectoralProcess extends Contract {
             throw new Error(`The candidate assigned for the key ${hash} has already registered as candidate for this election.`);
         }
 
-        new SendEmail(            
+        //sending the IV, just because i am returning the msg as string, so the final result must be always the same
+        var securedHash = await crypto.aesGcmEncrypt(hash, key, Buffer.from('5BD465AEBA61'));
+
+        let msg = '<p>Link to grant access to the candidate area - <a href="http://localhost:5000/candidacy/?token=' + securedHash +'&electionNum='+ electionNum +' "></a> </p>';
+        
+        let result = new SendEmail(            
             participant.email,
             'Request to candidacy - ' + election.name,
-            '<p>Link to grant access to the candidate area - <a href="http://localhost:8080/api/candidacy/?token=' + hash +'&electionNum='+ electionNum +' "></a> </p>'
+            msg
         ).sendMail();
+
+        return msg + result;
     }
 
     /* back from email, the front end page should be returned and then, on the click of the front end page
     * this function could be called to finally put the state of the candidacy.
     */ 
-    public async submitCandidate(ctx: Context, positionNumber: string, proposal: string) {
+    public async submitCandidate(ctx: Context, positionNumber: string, proposal: string, requestSecuredHash: string, key: string) {
         //verificar se periodo de candidatura.
         //verificar se já se candidateu para algum position nessa election.
         
@@ -224,7 +231,18 @@ export class ElectoralProcess extends Contract {
 
         const electionResult = await this.queryAsset(ctx, position.electionNum);
         position.election = JSON.parse(electionResult);
-                
+
+
+        let idUint8Array = ctx.clientIdentity.getIDBytes();
+        let crypto = new CryptoStuff();
+        let hash = await crypto.sha256Hashing(idUint8Array.toString(), key);
+        
+        let requestedHash = await crypto.aesGcmDecrypt(requestSecuredHash, key);
+
+        if (requestedHash != hash){ // todo clean the error output
+            throw new Error(`The participant is not the same one who requested to candidacy. - \ncalculatedHash ${hash} \nrequestedHash ${requestedHash}`);
+        }
+
         // try to compare with .getTime() - verification do not working
         if (await !this.isCandidacyTime(ctx, position.election)){
             throw new Error('The election is not on candidacy period.');

@@ -17,16 +17,21 @@ export class SendEmail{
         this.setSender();
     }
 
-    sendMail(){
+    sendMail() : string {
+        let result = '';
         this.sender.sendMail(this.mailMounted, function(error){        
-            if (error)
+            if (error){
                 console.log(error);
+                result = '\n'+error;
+            }
             else
                 console.log('Email enviado com sucesso.');
+                result = '\nEmail enviado com sucesso.';
         });
+        return result;
     }
 
-    setSender(){
+    setSender() {
         console.log("Mail to send")
         this.sender = this.nodemailer.createTransport({
             host: "smtp.gmail.com",
@@ -41,4 +46,4 @@ export class SendEmail{
     }
 }
 
-//  new SendEmail('dui.0312@hotmail.com','Teste SEND_MAIL',' TURURUUUUUUUU').sendMail();
+  //new SendEmail('dui.0312@hotmail.com','Teste SEND_MAIL',' TURURUUUUUUUU').sendMail();
