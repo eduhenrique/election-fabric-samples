@@ -1,3 +1,4 @@
+import { error } from 'console';
 /*
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -24,7 +25,7 @@ export class RequestContract{
             if (!identity) {
                 console.log('An identity for the user '+user+' does not exist in the wallet');
                 console.log('Run the registerUser.ts application before retrying');
-                return;
+                throw new error('401 - An identity for the user '+user+' does not exist in the wallet');
             }
 
             // Create a new gateway for connecting to our peer node.
@@ -40,7 +41,7 @@ export class RequestContract{
             return [gateway, contract];
         } catch (error) {
             console.error(`Failed to retrieve contract: ${error}`);
-            process.exit(1);
+            throw error;
         }
     }
 }

@@ -290,11 +290,14 @@ export class ElectoralProcess extends Contract {
 
         var securedHash = await crypto.aesGcmEncrypt(hash, key);
 
-        new SendEmail(            
+        let msg = '<p>Link to grant access to the election poll - <a href="http://localhost:5000/electionForm/?token=' + securedHash +'&electionNum='+ electionNum +' "></a> </p>'
+        let result = new SendEmail(            
             participant.email,
             'Request to vote - ' + election.name,
-            '<p>Link to grant access to the election poll - <a href="http://localhost:8080/api/getElectionForm/?token=' + securedHash +'&electionNum='+ electionNum +' "></a> </p>'
+            msg
         ).sendMail();
+
+        return msg + result;
     }    
     
     /* back from email, the front end page should be returned and then, on the click of the form,
@@ -319,7 +322,7 @@ export class ElectoralProcess extends Contract {
         let requestedHash = await crypto.aesGcmDecrypt(requestSecuredHash, key);
 
         if (requestedHash != hash){ // todo clean the error output
-            throw new Error(`The voter is not the same one who requested to vote. - \n${hash} \n${requestedHash} \n${idUint8Array.toString()}`);
+            throw new Error(`The voter is not the same one who requested to vote. - \ncalculatedHash ${hash} \nrequestedHash ${requestedHash}`);
         }
 
         let isAValidVoter = await this.checkToSubmitVote(ctx, hash, position.electionNum, key);
@@ -391,7 +394,7 @@ export class ElectoralProcess extends Contract {
 
         var hash: string = 'voteList_' + votes.electionNum;
         await ctx.stub.putState(hash, Buffer.from(JSON.stringify(votes)));
-        return JSON.stringify(votes) + ' \nVoteList \n' + JSON.stringify(voteList) + '\n length '+ voteList.length;
+        return JSON.stringify(votes);
     }
 
     private async getVoteListFromEncryptedVotes(ctx: Context, electionNum: string, key: string):Promise<Array<Vote>>{

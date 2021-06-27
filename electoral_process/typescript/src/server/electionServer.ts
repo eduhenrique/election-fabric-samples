@@ -1,5 +1,6 @@
 import { parse } from "path";
 import { AccessPrivateKey } from "../getPrivateKey";
+import { RequestContract } from "../requestContract";
 
 require('dotenv').config();
 const express = require('express');
@@ -28,18 +29,6 @@ const swaggerOptions = {
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
-
-// Setting for Hyperledger Fabric
-const { Wallets, FileSystemWallet, Gateway } = require('fabric-network');
-const path = require('path');
-const fs = require('fs');
-const walletPath = process.env.WALLET_PATH;
-
-// load the network configuration
-const ccpPath = process.env.CONFIGURATION_PATH;
-// const ccpPath = path.resolve(__dirname, '..', '..', '..', '..','test-network','organizations','peerOrganizations','org1.example.com', 'connection-org1.json');
-const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
-
 // Routes
 /**
  * @swagger
@@ -53,36 +42,17 @@ const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
  *        description: A successful response
  */
 app.get('/elections', async (req, res) => {
-    try {
-        // Create a new file system based wallet for managing identities.        
-        const wallet = await Wallets.newFileSystemWallet(walletPath);
-        console.log(`Wallet path: ${walletPath}`);
-
-        // Check to see if we've already enrolled the user.
-        const userExists = await wallet.get('appUser');
-        if (!userExists) {
-            console.log('An identity for the user "appUser" does not exist in the wallet');
-            console.log('Run the registerUser.js application before retrying');
-            return;
-        }
-
-        // Create a new gateway for connecting to our peer node.
-        const gateway = new Gateway();        
-        await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: true } });
-
-        // Get the network (channel) our contract is deployed to.
-        const network = await gateway.getNetwork('mychannel');
-
-        // Get the contract from the network.
-        const contract = network.getContract('electoral_process');
+    try {     
+        let requestContract = new RequestContract()
+        let [gateway, contract] = await requestContract.getContract('appUser');
 
         const result = await contract.evaluateTransaction('queryAllElections');
         console.log(`Resultado RichQuery ALL Elections - ` +`${result.toString()}\n`);
 
-        // Evaluate the specified transaction.
-        // const result = await contract.evaluateTransaction('queryAllProducts');
-        // console.log(`Transaction has been evaluated, result is: ${result.toString()}`);
         res.status(200).json(JSON.parse(result.toString()));
+        
+        // Disconnect from the gateway.
+        await gateway.disconnect();
 
     } catch (error) {
         console.error(`Failed to evaluate transaction: ${error}`);
@@ -114,33 +84,17 @@ app.get('/elections', async (req, res) => {
  */
 app.get('/participant/', async function (req, res) {
     try {
-        // Create a new file system based wallet for managing identities.        
-        const wallet = await Wallets.newFileSystemWallet(walletPath);
-
-        // Check to see if we've already enrolled the user.
-        const userExists = await wallet.get('appUser');
-        if (!userExists) {
-            console.log('An identity for the user "appUser" does not exist in the wallet');
-            console.log('Run the registerUser.js application before retrying');
-            return;
-        }
-
-        // Create a new gateway for connecting to our peer node.
-        const gateway = new Gateway();        
-        await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: true } });
-
-        // Get the network (channel) our contract is deployed to.
-        const network = await gateway.getNetwork('mychannel');
-
-        // Get the contract from the network.
-        const contract = network.getContract('electoral_process');
+        let requestContract = new RequestContract()
+        let [gateway, contract] = await requestContract.getContract('appUser');
 
         let cpf = req.query.cpf;
         const result = await contract.evaluateTransaction('queryAsset', cpf);
         console.log(`Transaction has been evaluated, result is: ${result.toString()}\n`);
 
-        res.status(200).json({response: result.toString()});
-
+        res.status(200).json(JSON.parse(result.toString()));
+        
+        // Disconnect from the gateway.
+        await gateway.disconnect();
     } catch (error) {
         console.error(`Failed to query participant: ${error}`);
         res.status(500).send('Something broke!\n' + error);
@@ -181,28 +135,7 @@ app.get('/participant/', async function (req, res) {
  */
 app.post('/participant/', async function (req, res) {
     try {
-
-        let initiateParticipant = require('../initiateParticipant');        
-
-        // Create a new file system based wallet for managing identities.        
-        const wallet = await Wallets.newFileSystemWallet(walletPath);
-
-        // Check to see if we've already enrolled the user.
-        const userExists = await wallet.get('appUser');
-        if (!userExists) {
-            console.log('An identity for the user "appUser" does not exist in the wallet');
-            console.log('Run the registerUser.js application before retrying');
-            return;
-        }
-
-        // Create a new gateway for connecting to our peer node.
-        const gateway = new Gateway();        
-        await gateway.connect(ccp, { wallet, identity: 'appUser', discovery: { enabled: true, asLocalhost: true } });
-                
-        console.log(JSON.stringify(req.query) +'\n');
-        console.log(JSON.stringify(req.query.cpf) +'\n');
-        console.log(JSON.stringify(req.query.name) +'\n');
-        console.log(JSON.stringify(req.query.email) +'\n');
+        let initiateParticipant = require('../initiateParticipant');
         
         let hercules = {
             cpf: req.query.cpf,
@@ -210,16 +143,10 @@ app.post('/participant/', async function (req, res) {
             email: req.query.email
         };
 
-        console.log('Hercules' + JSON.stringify(hercules) +'\n');
-
         await new initiateParticipant.InitiateParticipant().initiateParticipant('appUser', hercules);
 
         console.log(`Participant has been created`);
         res.send('Participant has been created');
-
-        // Disconnect from the gateway.
-        await gateway.disconnect();
-
     } catch (error) {
         console.error(`Failed to submit transaction: ${error}`);
         res.status(500).send('Something broke!\n' + error);
@@ -229,7 +156,7 @@ app.post('/participant/', async function (req, res) {
 /**
  * @swagger
  * /requestCandidacy:
- *   post:
+ *   get:
  *     tags:
  *       - Candidacy
  *     description: Participant requests to be a candidate
@@ -252,32 +179,13 @@ app.post('/participant/', async function (req, res) {
  *       200:
  *         description: Successfully created
  */
-app.post('/requestCandidacy/', async function (req, res) {
+app.get('/requestCandidacy/', async function (req, res) {
     //get requestCandidacy to assembly the page for user, them the post request to proceed 
     try {
-        // Create a new file system based wallet for managing identities.        
-        const wallet = await Wallets.newFileSystemWallet(walletPath);
-        console.log(`Wallet path: ${walletPath}`);
-        
         let cpf: string = req.query.cpf;
 
-        // Check to see if we've already enrolled the user.
-        const userExists = await wallet.get(cpf);
-        if (!userExists) {
-            console.log('An identity for the user "appUser" does not exist in the wallet');
-            console.log('Run the registerUser.js application before retrying');
-            return;
-        }
-
-        // Create a new gateway for connecting to our peer node.
-        const gateway = new Gateway();        
-        await gateway.connect(ccp, { wallet, identity: cpf, discovery: { enabled: true, asLocalhost: true } });
-
-        // Get the network (channel) our contract is deployed to.
-        const network = await gateway.getNetwork('mychannel');
-
-        // Get the contract from the network.
-        const contract = network.getContract('electoral_process');
+        let requestContract = new RequestContract()
+        let [gateway, contract] = await requestContract.getContract(cpf);
 
         let electionNum = req.query.electionNum;
         let key = await new AccessPrivateKey().getPrivateKey();
@@ -289,7 +197,7 @@ app.post('/requestCandidacy/', async function (req, res) {
         // Disconnect from the gateway.
         await gateway.disconnect();
 
-    } catch (error) {
+    } catch (error) {        
         console.error(`Failed to request candidacy: ${error}`);
         res.status(500).send('Something broke!\n' + error);
     }
@@ -330,30 +238,10 @@ app.post('/requestCandidacy/', async function (req, res) {
  */
 app.post('/submitToCandidacy/', async function (req, res) {
     try {
-        // Create a new file system based wallet for managing identities.        
-        const wallet = await Wallets.newFileSystemWallet(walletPath);
-        console.log(`Wallet path: ${walletPath}`);
-        
         let cpf: string = req.body.cpf;
-        console.log(JSON.stringify(req.body));
-        console.log('cpf'+ cpf);
-        // Check to see if we've already enrolled the user.
-        const userExists = await wallet.get(cpf);
-        if (!userExists) {
-            console.log('An identity for the user '+cpf+' does not exist in the wallet');
-            console.log('Run the registerUser.js application before retrying');
-            res.status(401).send('An identity for the user '+cpf+' does not exist in the wallet');
-        }
-
-        // Create a new gateway for connecting to our peer node.
-        const gateway = new Gateway();        
-        await gateway.connect(ccp, { wallet, identity: cpf, discovery: { enabled: true, asLocalhost: true } });
-
-        // Get the network (channel) our contract is deployed to.
-        const network = await gateway.getNetwork('mychannel');
-
-        // Get the contract from the network.
-        const contract = network.getContract('electoral_process');
+        
+        let requestContract = new RequestContract()
+        let [gateway, contract] = await requestContract.getContract(cpf);
 
         let key = await new AccessPrivateKey().getPrivateKey();
         let requestSecuredHash: string = req.body.token;
@@ -362,9 +250,8 @@ app.post('/submitToCandidacy/', async function (req, res) {
 
         const result = await contract.submitTransaction('submitCandidate', positionNumber, proposal, requestSecuredHash, key);
         console.log(`Candidate has been submitted - `+`${result.toString()}\n`);
-        res.send('Candidacy completed.');
 
-        res.status(200).json({response: result.toString()});
+        res.send({response: result.toString()});
         // Disconnect from the gateway.
         await gateway.disconnect();
 
@@ -374,85 +261,201 @@ app.post('/submitToCandidacy/', async function (req, res) {
     }
 });
 
-app.get('/api/requestVote/', async function (req, res) {
+/**
+ * @swagger
+ * /requestVote:
+ *   get:
+ *     tags:
+ *       - Vote
+ *     description: Participant requests access to the vote
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: cpf
+ *         description: cpf information
+ *         in: query
+ *         required: true
+ *         schema:
+ *              type: string
+ *       - name: electionNum
+ *         description: election key
+ *         in: query
+ *         required: true
+ *         schema:
+ *              type: string
+ *     responses:
+ *       200:
+ *         description: Successfully created
+ */
+app.get('/requestVote/', async function (req, res) {
     try {
-        // Create a new file system based wallet for managing identities.        
-        const wallet = await Wallets.newFileSystemWallet(walletPath);
-        console.log(`Wallet path: ${walletPath}`);
-        
         let cpf: string = req.query.cpf;
         let electionNum = req.query.electionNum;
-
-        // Check to see if we've already enrolled the user.
-        const userExists = await wallet.get(cpf);
-        if (!userExists) {
-            console.log('An identity for the user ' + cpf + ' does not exist in the wallet');
-            console.log('Run the registerUser.js application before retrying');
-            return;
-        }
         
-        // Create a new gateway for connecting to our peer node.
-        const gateway = new Gateway();        
-        await gateway.connect(ccp, { wallet, identity: cpf, discovery: { enabled: true, asLocalhost: true } });
+        let requestContract = new RequestContract()
+        let [gateway, contract] = await requestContract.getContract(cpf);
 
-        // Get the network (channel) our contract is deployed to.
-        const network = await gateway.getNetwork('mychannel');
+        let key = await new AccessPrivateKey().getPrivateKey();
+        const result = await contract.evaluateTransaction('requestVote', electionNum, key);
 
-        // Get the contract from the network.
-        const contract = network.getContract('electoral_process');
+        console.log(`Voter request - `+`${result.toString()}\n`);        
+        res.send('Voter request complete. Check your email to continue the process');
         
-
-        const result = await contract.evaluateTransaction('requestVote', electionNum);        
-        res.send('Request has been sent to the registered email.');
-
         // Disconnect from the gateway.
         await gateway.disconnect();
 
     } catch (error) {
-        console.error(`Failed to submit transaction: ${error}`);
-        process.exit(1);
+        console.error(`Failed to request vote: ${error}`);
+        res.status(500).send('Something broke!\n' + error);
     }
 });
 
-app.get('/api/getElectionForm', async function (req, res) {
+/**
+ * @swagger
+ * /submitVote:
+ *   post:
+ *      tags:
+ *        - Vote
+ *      description: Participant submits the vote
+ *      consumes:
+ *        - application/json
+ *      parameters:
+ *        - in: body
+ *          name: candidateSubmitted
+ *          description: Participant submits the vote xD
+ *          schema:
+ *            type: object
+ *            required:
+ *              - cpf
+ *              - token
+ *              - candidates
+ *            properties:
+ *              cpf:
+ *                type: string
+ *              token:
+ *                type: string
+ *              candidates:
+ *                type: string
+ *      responses:
+ *          200:
+ *              description: Successfully created
+ */
+app.post('/submitVote/', async function (req, res) {
     try {
-        // Create a new file system based wallet for managing identities.        
-        const wallet = await Wallets.newFileSystemWallet(walletPath);
-        console.log(`Wallet path: ${walletPath}`);
-
-        let cpf: string = req.query.cpf;
-        let electionNum = req.query.electionNum;
-        let token = req.query.token;
-
-        // Check to see if we've already enrolled the user.
-        const userExists = await wallet.get(cpf);
-        if (!userExists) {
-            console.log('An identity for the user ' + cpf + ' does not exist in the wallet');
-            console.log('Run the registerUser.js application before retrying');
-            return;
-        }
-
-        // Create a new gateway for connecting to our peer node.
-        const gateway = new Gateway();        
-        await gateway.connect(ccp, { wallet, identity: cpf, discovery: { enabled: true, asLocalhost: true } });
-
-        // Get the network (channel) our contract is deployed to.
-        const network = await gateway.getNetwork('mychannel');
-
-        // Get the contract from the network.
-        const contract = network.getContract('electoral_process');
-        //'ELECTION0'
-        const result = await contract.evaluateTransaction('queryAllPositionsByElection', electionNum);
-        console.log(`Resultado RichQuery ALL Positions - ` +`${result.toString()}\n`);
+        let cpf: string = req.body.cpf;
         
-        res.status(200).json({response: result.toString()});
+        let requestContract = new RequestContract()
+        let [gateway, contract] = await requestContract.getContract(cpf);
+
+        let key = await new AccessPrivateKey().getPrivateKey();
+        let requestSecuredHash: string = req.body.token;
+        let candidates: string = req.body.candidates;
+
+        const result = await contract.submitTransaction('submitVote', requestSecuredHash, candidates, key);
+        console.log(`Vote has been submitted - `+`${result.toString()}\n`);
+
+        res.send({response: result.toString()});
+        // Disconnect from the gateway.
+        await gateway.disconnect();
 
     } catch (error) {
-        console.error(`Failed to evaluate transaction: ${error}`);
-        res.status(500).json({error: error});
-        process.exit(1);
+        console.error(`Failed to submit the vote: ${error}`);
+        res.status(500).send('Something broke!\n' + error);
     }
 });
+
+/**
+ * @swagger
+ * /submitVoteTallyResult:
+ *   post:
+ *     tags:
+ *       - Result
+ *     description: Start the tally process to get the results
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: electionNum
+ *         description: election key
+ *         in: query
+ *         required: true
+ *         schema:
+ *              type: string
+ *     responses:
+ *       200:
+ *         description: Successfully created
+ */
+app.post('/submitVoteTallyResult', async (req, res) => {
+    try {
+        let requestContract = new RequestContract()
+        let [gateway, contract] = await requestContract.getContract('appUser');
+
+        let key = await new AccessPrivateKey().getPrivateKey();
+        let electionNum: string = req.query.electionNum;        
+
+        const result = await contract.submitTransaction('submitVoteTallyResult', electionNum, key);
+        console.log(`The tally has been completed - `+`${result.toString()}\n`);
+
+        res.status(200).json(JSON.parse(result.toString()));
+        // Disconnect from the gateway.
+        await gateway.disconnect();
+
+    } catch (error) {
+        console.error(`Failed process the tally step: ${error}`);
+        res.status(500).send('Something broke!\n' + error);
+    }
+});
+
+/**
+ * @swagger
+ * /electionResult:
+ *  get:
+ *    tags:
+ *       - Result
+ *    description: Use to request the Election Result
+ *    responses:
+ *      '200':
+ *        description: A successful response
+ */
+app.get('/electionResult', async (req, res) =>{
+    try{
+        let requestContract = new RequestContract()
+        let [gateway, contract] = await requestContract.getContract('appUser');
+
+        const result = await contract.evaluateTransaction('queryAsset', 'voteList_ELECTION0');
+
+        console.log(`Election result - `+`${result.toString()}\n`);        
+        res.status(200).json(JSON.parse(result.toString()));
+        
+        // Disconnect from the gateway.
+        await gateway.disconnect();
+    } catch (error) {
+        console.error(`Failed process the tally step: ${error}`);
+        res.status(500).send('Something broke!\n' + error);
+    }
+});
+
+// app.get('/api/getElectionForm', async function (req, res) {
+//     try {
+//         let cpf: string = req.query.cpf;
+//         let electionNum = req.query.electionNum;
+//         let token = req.query.token;
+       
+//         let requestContract = new RequestContract()
+//         let [gateway, contract] = await requestContract.getContract('appUser');
+
+//         //'ELECTION0'
+//         const result = await contract.evaluateTransaction('queryAllPositionsByElection', electionNum);
+//         console.log(`Resultado RichQuery ALL Positions - ` +`${result.toString()}\n`);
+        
+//         res.status(200).json({response: result.toString()});
+//         // Disconnect from the gateway.
+//         await gateway.disconnect();
+
+//     } catch (error) {
+//         console.error(`Failed to evaluate transaction: ${error}`);
+//         res.status(500).json({error: error});
+//     }
+// });
 
 
 app.listen(5000, 'localhost');
