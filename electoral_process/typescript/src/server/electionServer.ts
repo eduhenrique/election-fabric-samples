@@ -63,6 +63,62 @@ app.get('/elections', async (req, res) => {
 
 /**
  * @swagger
+ * /position:
+ *   post:
+ *     tags:
+ *       - Position
+ *     description: Creates a new position
+ *     produces:
+ *       - application/json
+ *     parameters:
+ *       - name: name
+ *         description: name information
+ *         in: query
+ *         required: true
+ *         schema:
+ *              type: string
+ *       - name: positionNum
+ *         description: position key
+ *         in: query
+ *         required: true
+ *         schema:
+ *              type: string
+ *       - name: electionNum
+ *         description: election key
+ *         in: query
+ *         required: true
+ *         schema:
+ *              type: string
+ *     responses:
+ *       200:
+ *         description: Successfully created
+ */
+app.post('/position', async (req, res) => {
+    try {
+        let requestContract = new RequestContract()
+        let [gateway, contract] = await requestContract.getContract('appUser');
+
+        let key = await new AccessPrivateKey().getPrivateKey();
+        let electionNum: string = req.query.electionNum;
+        let positionNum: string = req.query.positionNum;
+        let positionName: string = req.query.electionNum;
+
+        const result = await contract.submitTransaction('createPosition', positionNum, positionName, electionNum);
+        
+        console.log(`The position has been created - `+`${result.toString()}\n`);
+
+        res.status(200).json(JSON.parse(result.toString()));
+        // Disconnect from the gateway.
+        await gateway.disconnect();
+
+    } catch (error) {
+        console.error(`Failed to submit transaction: ${error}`);
+        res.status(500).send('Something broke!\n' + error);
+    }
+});
+
+/**
+ * @swagger
  * /participant:
  *  get:
  *    tags:
@@ -390,7 +446,7 @@ app.post('/submitVoteTallyResult', async (req, res) => {
         let [gateway, contract] = await requestContract.getContract('appUser');
 
         let key = await new AccessPrivateKey().getPrivateKey();
-        let electionNum: string = req.query.electionNum;        
+        let electionNum: string = req.query.electionNum;
 
         const result = await contract.submitTransaction('submitVoteTallyResult', electionNum, key);
         console.log(`The tally has been completed - `+`${result.toString()}\n`);
