@@ -321,7 +321,7 @@ app.get('/requestVote/', async function (req, res) {
  *        - application/json
  *      parameters:
  *        - in: body
- *          name: candidateSubmitted
+ *          name: voteSubmitted
  *          description: Participant submits the vote xD
  *          schema:
  *            type: object

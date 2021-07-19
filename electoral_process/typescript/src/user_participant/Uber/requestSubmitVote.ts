@@ -5,7 +5,7 @@ import { SubmitVote } from "../../submitVote";
 
 async function main(){
     
-    let id = await new RequestIdentity().main('12300032110');    
+    let id = await new RequestIdentity().main('12300032110');
     let key = await new AccessPrivateKey().getPrivateKey();
     let crypto = new CryptoStuff();
     let voterHash = await crypto.sha256Hashing(id, key);
