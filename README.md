@@ -11,7 +11,18 @@ After running the **curl -sSL https://bit.ly/2ysbOFE | bash -s** part from the a
     - [Client](electoral_process)
     - [Chaincode](chaincode/electoral_process/typescript)
 
-**the next snippet is the original Readme. All the documentation links point to the version 2.1 of the Hyperledger.**
+API Endpoints that represents the electoral process:
+
+![](images/AllEndpoints.jpg)
+
+This image explain the relation between the API and the blockchain network:
+
+![](images/REST_API.jpg)
+
+**The next snippet is the original Readme with informations about other examples. All the documentation links point to the version 2.1 of the Hyperledger.**
+
+<details>
+  <summary>Click to expand!</summary>
 
 # Hyperledger Fabric Samples
 
@@ -42,3 +53,5 @@ Hyperledger Project source code files are made available under the Apache
 License, Version 2.0 (Apache-2.0), located in the [LICENSE](LICENSE) file.
 Hyperledger Project documentation files are made available under the Creative
 Commons Attribution 4.0 International License (CC-BY-4.0), available at http://creativecommons.org/licenses/by/4.0/.
+
+<details>
