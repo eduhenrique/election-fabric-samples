@@ -55,6 +55,11 @@ export class ElectoralProcess extends Contract {
     }
 
     public async createElection(ctx: Context, electionNumber: string, name: string, candidacy_period_initial: Date, candidacy_period_final: Date, voting_period_initial: Date, voting_period_final: Date) {
+        var electionRole = ctx.clientIdentity.getAttributeValue('electionRole');
+        if (electionRole != 'admin'){
+            throw new Error('The request must be made by a Admin user');
+        }
+
         console.info('============= START : Create Election ===========');        
         //verificar periodos (inicio candidatura tem que ser menor que fim candidatura...)
         //Como permitir que somente usuários admins utilizem essa função?
@@ -124,7 +129,12 @@ export class ElectoralProcess extends Contract {
         return queryResults;
     }
 
-    public async queryEncryptedVotesByElection(ctx: Context, electionNum: string): Promise<string>{    
+    public async queryEncryptedVotesByElection(ctx: Context, electionNum: string): Promise<string>{  
+        var electionRole = ctx.clientIdentity.getAttributeValue('electionRole');
+        if (electionRole != 'admin'){
+            throw new Error('The request must be made by a Admin user');
+        }
+        
         var queryString = "{\"selector\":{\"docType\":\"encryptedVote\",\"electionNum\":\"" + electionNum +"\"}}";
     
         try {
@@ -140,6 +150,11 @@ export class ElectoralProcess extends Contract {
     }
     
     public async createPosition(ctx: Context, positionNumber: string, name: string, electionNumber: string) {
+        var electionRole = ctx.clientIdentity.getAttributeValue('electionRole');
+        if (electionRole != 'admin'){
+            throw new Error('The request must be made by a Admin user');
+        }
+
         console.info('============= START : Create Position ===========');
         //verificar se é update ou create - fazer um getAll por Election
         const electionResult = await this.queryAsset(ctx, electionNumber);
@@ -157,6 +172,11 @@ export class ElectoralProcess extends Contract {
     }
 
     public async createParticipant(ctx: Context, cpf: string, name: string, email: string) {
+        var electionRole = ctx.clientIdentity.getAttributeValue('electionRole');
+        if (electionRole != 'admin'){
+            throw new Error('The request must be made by a Admin user');
+        }
+
         console.info('============= START : Create Participant ===========');
 
         const assetAsBytes = await ctx.stub.getState(cpf);
@@ -178,7 +198,12 @@ export class ElectoralProcess extends Contract {
 
     //send mail to confirm access
     public async requestCandidacy(ctx: Context, electionNum: string, key: string) {
-        //verificar se já é um candidato.
+        var electionRole = ctx.clientIdentity.getAttributeValue('electionRole');
+        if (electionRole != 'participant'){
+            throw new Error('The request must be made by a participant user');
+        }
+        
+        //check if the user is candidate.
         var participantKey = ctx.clientIdentity.getAttributeValue('cpf');
         const participantResult = await this.queryAsset(ctx, participantKey);
         const participant : Participant = JSON.parse(participantResult);
@@ -216,9 +241,14 @@ export class ElectoralProcess extends Contract {
     /* back from email, the front end page should be returned and then, on the click of the front end page
     * this function could be called to finally put the state of the candidacy.
     */ 
-    public async submitCandidate(ctx: Context, positionNumber: string, proposal: string, requestSecuredHash: string, key: string) {
-        //verificar se periodo de candidatura.
-        //verificar se já se candidateu para algum position nessa election.
+    public async submitCandidate(ctx: Context, positionNumber: string, proposal: string, requestSecuredHash: string, key: string) {        
+        var electionRole = ctx.clientIdentity.getAttributeValue('electionRole');
+        if (electionRole != 'participant'){
+            throw new Error('The request must be made by a participant user');
+        }
+
+        //check  if it is candidacy time.
+        //check if the user has already candidated for any position on thie election.
         
         //Create hash token again and check agains the hash token received from the email
 
@@ -265,6 +295,11 @@ export class ElectoralProcess extends Contract {
 
     //send mail to confirm access
     public async requestVote(ctx: Context, electionNum: string, key: string) {
+        var electionRole = ctx.clientIdentity.getAttributeValue('electionRole');
+        if (electionRole != 'participant'){
+            throw new Error('The request must be made by a participant user');
+        }
+
         // a verificação sobre o eleitor acontece agora ou no momento do acesso? (register user)
         //hash for URL-safe base64-encoded 
         //verificar se periodo de votacao
@@ -304,6 +339,11 @@ export class ElectoralProcess extends Contract {
     * this function could be called to finally put the state of the vote.
     */ 
    public async submitVote(ctx: Context, requestSecuredHash: string, candidateNumbers: string, key: string) {
+        var electionRole = ctx.clientIdentity.getAttributeValue('electionRole');
+        if (electionRole != 'participant'){
+            throw new Error('The request must be made by a participant user');
+        }
+
         //#region Get Position from candidate
         let candidateNumArray = candidateNumbers.split(',');
         const candidateResult = await this.queryAsset(ctx, candidateNumArray[0]);
@@ -355,6 +395,11 @@ export class ElectoralProcess extends Contract {
     }
 
     public async electionIndividualVerifiability(ctx: Context, electionNum: string, requestSecuredHash: string, key: string) {
+        var electionRole = ctx.clientIdentity.getAttributeValue('electionRole');
+        if (electionRole != 'participant'){
+            throw new Error('The request must be made by a participant user');
+        }
+
         // let voteList = await this.getVoteListFromEncryptedVotes(ctx, electionNum, key);
         let rawsecuredHash = await new CryptoStuff().aesGcmDecrypt(requestSecuredHash, key);
 
@@ -383,7 +428,12 @@ export class ElectoralProcess extends Contract {
         return encryptedVoteMatched + ' qtd' + qtd;
     }
     
-    public async submitVoteTallyResult(ctx: Context, electionNum: string, key: string){        
+    public async submitVoteTallyResult(ctx: Context, electionNum: string, key: string){
+        var electionRole = ctx.clientIdentity.getAttributeValue('electionRole');
+        if (electionRole != 'admin'){
+            throw new Error('The request must be made by a Admin user');
+        }
+
         let voteList = await this.getVoteListFromEncryptedVotes(ctx, electionNum, key);
 
         const votes : Votes = {
