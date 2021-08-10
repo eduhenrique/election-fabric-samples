@@ -8,7 +8,7 @@ You should have the [Prerequisites](https://hyperledger-fabric.readthedocs.io/en
 After running the **curl -sSL https://bit.ly/2ysbOFE | bash -s** part from the above link, the bin and **config** folders will be created, then you should copy those folders to this fork one. 
 
 - **Added Electoral example, where you can find more info of setup and running**
-    - [Client](electoral_process)
+    - [Blockchain Client / API Server ](electoral_process)
     - [Chaincode](chaincode/electoral_process/typescript)
 
 API Endpoints that represents the electoral process:

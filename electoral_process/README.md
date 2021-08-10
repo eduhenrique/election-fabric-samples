@@ -1,4 +1,4 @@
-# Electoral Process - Client Tutorial
+# Electoral Process - Blockchain Client / API Server  Tutorial
 
 ## Setup && Running
 First, you must run the **npm i** to leave the packages up-to-date.
@@ -41,7 +41,7 @@ All endpoints related to a participant will deal with the CPF value. This is a u
 For this API to works fine, you should create a **.env** file based in the **.env.example**, present in this folder. Just copy and past and remove the word '.example' is enough, no need to change the value of the variables.
 
 Still inside of the **fabric-samples/electoral_process/typescript/** folder, run the command:
- - `nodemon -L dist dist/server/electionServer`
+ - `nodemon -L dist/server/electionServer`
 
 Now you can open the url **http://localhost:5000/api-docs** and watch the changes in the terminal
 
