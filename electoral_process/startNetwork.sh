@@ -50,7 +50,7 @@ JavaScript:
     npm install
 
   Then run the following applications to enroll the admin user, and register a new user
-  called appUser which will be used by the other applications to interact with the deployed
+  called electionAdmin which will be used by the other applications to interact with the deployed
   ElectoralProcess contract:
     node enrollAdmin
     node registerUser
@@ -75,7 +75,7 @@ TypeScript:
     npm run build
 
   Then run the following applications to enroll the admin user, and register a new user
-  called appUser which will be used by the other applications to interact with the deployed
+  called electionAdmin which will be used by the other applications to interact with the deployed
   ElectoralProcess contract:
     node dist/enrollAdmin
     node dist/registerUser
@@ -97,7 +97,7 @@ Java:
     mvn test
 
   The test will invoke the sample client app which perform the following:
-    - Enroll admin and appUser and import them into the wallet (if they don't already exist there)
+    - Enroll admin and electionAdmin and import them into the wallet (if they don't already exist there)
     - Submit a transaction to create a new car
     - Evaluate a transaction (query) to return details of this car
     - Submit a transaction to change the owner of this car

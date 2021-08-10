@@ -10,21 +10,21 @@ async function main(){
     hercules.name = 'Hercules';
     hercules.email = 'edu@edu.edu';
 
-    await initiateParticipant.initiateParticipant('appUser', hercules);
+    await initiateParticipant.initiateParticipant('electionAdmin', hercules);
 
     let alibaba = new Participant();
     alibaba.cpf = '04004044411';
     alibaba.name = 'Alibaba';
     alibaba.email = 'edu@edu.edu';
 
-    await initiateParticipant.initiateParticipant('appUser', alibaba);
+    await initiateParticipant.initiateParticipant('electionAdmin', alibaba);
 
     let uber = new Participant();
     uber.cpf = '12300032110';
     uber.name = 'Uber';
     uber.email = 'edu@edu.edu';
 
-    await initiateParticipant.initiateParticipant('appUser', uber);
+    await initiateParticipant.initiateParticipant('electionAdmin', uber);
 }
 
 main();

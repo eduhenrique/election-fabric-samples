@@ -8,7 +8,7 @@ async function main() {
         let key = await new AccessPrivateKey().getPrivateKey();
 
         let requestContract = new RequestContract()
-        let [gateway, contract] = await requestContract.getContract('appUser');
+        let [gateway, contract] = await requestContract.getContract('electionAdmin');
     
         const result0 = await contract.submitTransaction('submitVoteTallyResult', "ELECTION0", key);
         console.log(`Tally process done - ${result0}\n`);

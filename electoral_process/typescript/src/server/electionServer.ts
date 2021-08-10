@@ -44,7 +44,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.get('/elections', async (req, res) => {
     try {     
         let requestContract = new RequestContract()
-        let [gateway, contract] = await requestContract.getContract('appUser');
+        let [gateway, contract] = await requestContract.getContract('electionAdmin');
 
         const result = await contract.evaluateTransaction('queryAllElections');
         console.log(`Resultado RichQuery ALL Elections - ` +`${result.toString()}\n`);
@@ -96,7 +96,7 @@ app.get('/elections', async (req, res) => {
 app.post('/position', async (req, res) => {
     try {
         let requestContract = new RequestContract()
-        let [gateway, contract] = await requestContract.getContract('appUser');
+        let [gateway, contract] = await requestContract.getContract('electionAdmin');
 
         let key = await new AccessPrivateKey().getPrivateKey();
         let electionNum: string = req.query.electionNum;
@@ -141,7 +141,7 @@ app.post('/position', async (req, res) => {
 app.get('/participant/', async function (req, res) {
     try {
         let requestContract = new RequestContract()
-        let [gateway, contract] = await requestContract.getContract('appUser');
+        let [gateway, contract] = await requestContract.getContract('electionAdmin');
 
         let cpf = req.query.cpf;
         const result = await contract.evaluateTransaction('queryAsset', cpf);
@@ -199,7 +199,7 @@ app.post('/participant/', async function (req, res) {
             email: req.query.email
         };
 
-        await new initiateParticipant.InitiateParticipant().initiateParticipant('appUser', hercules);
+        await new initiateParticipant.InitiateParticipant().initiateParticipant('electionAdmin', hercules);
 
         console.log(`Participant has been created`);
         res.send('Participant has been created');
@@ -443,7 +443,7 @@ app.post('/submitVote/', async function (req, res) {
 app.post('/submitVoteTallyResult', async (req, res) => {
     try {
         let requestContract = new RequestContract()
-        let [gateway, contract] = await requestContract.getContract('appUser');
+        let [gateway, contract] = await requestContract.getContract('electionAdmin');
 
         let key = await new AccessPrivateKey().getPrivateKey();
         let electionNum: string = req.query.electionNum;
@@ -475,7 +475,7 @@ app.post('/submitVoteTallyResult', async (req, res) => {
 app.get('/electionResult', async (req, res) =>{
     try{
         let requestContract = new RequestContract()
-        let [gateway, contract] = await requestContract.getContract('appUser');
+        let [gateway, contract] = await requestContract.getContract('electionAdmin');
 
         const result = await contract.evaluateTransaction('queryAsset', 'voteList_ELECTION0');
 
@@ -497,7 +497,7 @@ app.get('/electionResult', async (req, res) =>{
 //         let token = req.query.token;
        
 //         let requestContract = new RequestContract()
-//         let [gateway, contract] = await requestContract.getContract('appUser');
+//         let [gateway, contract] = await requestContract.getContract('electionAdmin');
 
 //         //'ELECTION0'
 //         const result = await contract.evaluateTransaction('queryAllPositionsByElection', electionNum);

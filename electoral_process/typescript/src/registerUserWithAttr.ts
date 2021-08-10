@@ -45,9 +45,9 @@ export class CreateUserParticipant{
            const adminUser = await provider.getUserContext(adminIdentity, 'admin');
     
             // Register the user, enroll the user, and import the new identity into the wallet.
-            const secret = await ca.register({ enrollmentID: name, affiliation: 'org1.department1', role: 'client', attrs: [{ name: 'cpf', value: cpf, ecert: true}] }, adminUser);
+            const secret = await ca.register({ enrollmentID: name, affiliation: 'org1.department1', role: 'client', attrs: [{ name: 'cpf', value: cpf, ecert: true }, { name: 'electionRole', value: 'participant', ecert: true }] }, adminUser);
             console.log(`Secret :  ${secret}\n`)
-            const enrollment = await ca.enroll({ enrollmentID: name, enrollmentSecret: secret, attr_reqs: [{ name: 'cpf', optional: false }] });
+            const enrollment = await ca.enroll({ enrollmentID: name, enrollmentSecret: secret, attr_reqs: [{ name: 'cpf', optional: false }, { name: 'electionRole', optional: false }] });
 
             const x509Identity: X509Identity = {
                 credentials: {
@@ -58,7 +58,7 @@ export class CreateUserParticipant{
                 type: 'X.509',
             };
             await wallet.put(name, x509Identity);
-            console.log("Successfully registered and enrolled admin user " + name + " and imported it into the wallet.");
+            console.log("Successfully registered and enrolled participant user " + name + " and imported it into the wallet.");
     
         } catch (error) {
             console.error(`Failed to register user ${name}: ${error}`);
