@@ -318,7 +318,7 @@ export class ElectoralProcess extends Contract {
         let crypto = new CryptoStuff();
         let hash = await crypto.sha256Hashing(idUint8Array.toString(), key);
 
-        let isAValidVoter = await this.checkToSubmitVote(ctx, hash, electionNum, key);
+        //let isAValidVoter = await this.checkToSubmitVote(ctx, hash, electionNum, key);
         // if (!isAValidVoter){
         //     throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
         // }
@@ -365,7 +365,7 @@ export class ElectoralProcess extends Contract {
             throw new Error(`The voter is not the same one who requested to vote. - \ncalculatedHash ${hash} \nrequestedHash ${requestedHash}`);
         }
 
-        let isAValidVoter = await this.checkToSubmitVote(ctx, hash, position.electionNum, key);
+        //let isAValidVoter = await this.checkToSubmitVote(ctx, hash, position.electionNum, key);
         // if (!isAValidVoter){
         //     throw new Error(`The voter assigned for the key ${hash} has already registered a vote for this election.`);
         // }

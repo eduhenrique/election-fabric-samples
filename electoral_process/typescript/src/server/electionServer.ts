@@ -14,10 +14,10 @@ const swaggerOptions = {
     swaggerDefinition: {
       info: {
         version: "1.0.0",
-        title: "Blockchain Election API",
-        description: "Blockchain Election API Information",
+        title: "Psephos API",
+        description: "Psephos - Blockchain Election API Information",
         contact: {
-          name: "Amazing Developer"
+          name: "IFBA Developer"
         },
         servers: ["http://localhost:5000"]
       }
